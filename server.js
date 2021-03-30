@@ -2,20 +2,18 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const db = require("./db");
-const router = require("./routes/router")
-
+const router = require("./routes/router");
 
 const app = express();
 // const userRoute = require('./user')
 
-
-const PORT = 3000;
+const PORT = 3001;
 
 app.use(cors());
-app.use(bodyParser.json()) // for parsing application/json
-app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
+app.use(bodyParser.json()); // for parsing application/json
+app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
-app.use('/', router)
+app.use("/", router);
 
 // app.get("/map", async (req, res) => {
 //   // get geojson of layer
