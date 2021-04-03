@@ -7,7 +7,8 @@ const router = require("./routes/router");
 const app = express();
 // const userRoute = require('./user')
 
-const PORT = 3001;
+const PORT = 3001; 
+
 
 app.use(cors());
 app.use(bodyParser.json()); // for parsing application/json

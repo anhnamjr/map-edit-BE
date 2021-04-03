@@ -63,6 +63,14 @@ const getSingleMP = async (req,res) => {
   res.send(rows[0].geom)
 }
 
+const getSingleShape = async (req,res) => {
+  let {geoID } = req.query
+  let strQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "GeoData" AS geo WHERE "geoID" = '${geoID}'`;
+  let {rows} = await db.query(strQuery, []);
+  console.log(rows)
+  res.status(200).send(rows[0].geom.features[0])
+}
+
 const getDefaultLayer = async (req, res) => {
   try {
     const table = "vietnam_" + req.query.name;
@@ -326,6 +334,24 @@ const deleteGeoData = async (req, res) => {
   });
 };
 
+const search = async (req,res) => {
+  let { input } = req.query
+  // let arrOption = []
+  console.log(input)
+  try{
+    if (input) {
+      let strQuery = `SELECT "geoName", "geoID" FROM "GeoData" WHERE "geoName" LIKE '%${input}%'`  //query tam.
+      let { rows } = await db.query(strQuery, [])
+      // rows.forEach(item => arrOption.push(item))
+      // console.log(arrOption)
+      console.log(rows)
+      res.status(200).send(rows)
+    } else res.status(404)
+  } catch(err){
+    console.log(err);
+  }
+  
+}
 module.exports = {
   getMap,
   getData,
@@ -338,4 +364,6 @@ module.exports = {
   editLayer,
   editGeoData,
   deleteGeoData,
+  search,
+  getSingleShape
 };

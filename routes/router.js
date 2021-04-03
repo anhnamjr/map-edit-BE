@@ -16,6 +16,8 @@ router.get("/default-layer", controller.getDefaultLayer);
 
 router.get("/single-MP",controller.getSingleMP);
 
+router.get("/single-shape",controller.getSingleShape);
+
 router.post("/data", controller.postGeoData);
 
 router.post("/editMap", controller.editMap);
@@ -30,5 +32,7 @@ router.post("/edit-geom", controller.editGeoData);
 
 router.post("/sign-in", user.signIn);
 router.post("/sign-up", user.signUp);
+
+router.get("/search",controller.search);
 
 module.exports = router;
