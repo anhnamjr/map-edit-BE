@@ -33,6 +33,24 @@ const getMap = async (req, res) => {
   res.status(200).send({ maps });
 };
 
+const checkMapName = async (req, res) => {
+  const mapName = req.body.mapName
+  const userID = req.body.userID??'16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0'
+
+  let strQuery = `SELECT * FROM "Maps" WHERE "userID" = '${userID}' AND "mapName" = '${mapName}'`
+  let { rows } = await db.query(strQuery, [])
+  if (rows.length === 0) res.status(200).send({msg:'ok'}); else res.status(409).send({msg:'Name of map is exist'})
+}
+const checkLayerName = async (req, res) => {
+  const layerName = req.body.layerName
+  const mapID = req.body.mapID
+
+  let strQuery = `SELECT * FROM "Layers" WHERE "mapID" = '${mapID}' AND "layerName" = '${layerName}'`
+  let { rows } = await db.query(strQuery, [])
+  if (rows.length === 0) res.status(200).send({msg:'ok'}); else res.status(409).send({msg:'Name of layer is exist'})
+}
+
+
 const getData = async (req, res) => {
   if (!req.query.layerId) {
     req.query.layerId = "";
@@ -98,14 +116,14 @@ const postMap = async (req, res) => {
       [userID, mapName]
     );
     if (rows.length !== 0) {
-      res.send({ msg: `Name of map is exist` });
+      res.status(409).send({ msg: `Name of map is exist` });
       return;
     } else {
       await db.query(
         `INSERT INTO "Maps"("mapName", "userID", "iconID") VALUES ($1, $2, $3)`,
         [mapName, userID, iconID]
       );
-      res.status(201).send();
+      res.status(201).send({ msg: `Success` });
       return;
     }
   } catch (err) {
@@ -114,8 +132,8 @@ const postMap = async (req, res) => {
 };
 
 const postLayer = async (req, res) => {
-  const { layerName } = req.body;
-  const mapID = "3943d0b1-ff9b-4b2e-8b0a-d25582a122dd";
+  const { layerName, mapID } = req.body;
+  // const mapID = "3943d0b1-ff9b-4b2e-8b0a-d25582a122dd";
   const iconID = "2ea20597-03c5-4307-9d57-a5c1c2caf143";
   try {
     const {
@@ -125,14 +143,14 @@ const postLayer = async (req, res) => {
       [mapID, layerName]
     );
     if (rows.length !== 0) {
-      res.send({ msg: `Name of layer is exist` });
+      res.status(409).send({ msg: `Name of layer is exist` });
       return;
     } else {
       await db.query(
         `INSERT INTO "Layers"("layerName", "mapID", "iconID") VALUES ($1, $2, $3)`,
         [layerName, mapID, iconID]
       );
-      res.status(201).send();
+      res.status(201).send({msg:'Success'});
       return;
     }
   } catch (err) {
@@ -154,12 +172,12 @@ const postGeoData = async (req, res) => {
       [layerID, geoName]
     );
     if (rows.length !== 0) {
-      res.send({ msg: `Name of geo data is exist` });
+      res.status(409).send({ msg: `Name of geo data is exist` });
     } else {
       const strQuery = `INSERT INTO "GeoData"("layerID", "geoName", "geom", "description", "radius") VALUES ('${layerID}', '${geoName}', ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326), '${description}', '${radius}')`;
       console.log(strQuery);
       await db.query(strQuery, []);
-      res.status(201).send();
+      res.status(201).send({msg:'Success'});
     }
   } catch (err) {
     console.error(err);
@@ -365,5 +383,7 @@ module.exports = {
   editGeoData,
   deleteGeoData,
   search,
-  getSingleShape
+  getSingleShape,
+  checkMapName,
+  checkLayerName
 };

@@ -6,7 +6,9 @@ const user = require("../controllers/user.controller");
 const router = express.Router();
 
 router.get("/maps", controller.getMap);
-router.post("/maps", controller.postMap);
+router.post("/checkMapName", controller.checkMapName);
+router.post("/checkLayerName", controller.checkLayerName);
+router.post("/map", controller.postMap);
 
 router.post("/layer", controller.postLayer);
 
@@ -18,7 +20,7 @@ router.get("/single-MP",controller.getSingleMP);
 
 router.get("/single-shape",controller.getSingleShape);
 
-router.post("/data", controller.postGeoData);
+router.post("/create-geom", controller.postGeoData);
 
 router.post("/editMap", controller.editMap);
 
