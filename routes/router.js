@@ -6,8 +6,8 @@ const user = require("../controllers/user.controller");
 const router = express.Router();
 
 router.get("/maps", controller.getMap);
-router.post("/checkMapName", controller.checkMapName);
-router.post("/checkLayerName", controller.checkLayerName);
+router.post("/check-map-name", controller.checkMapName);
+router.post("/check-layer-name", controller.checkLayerName);
 router.post("/map", controller.postMap);
 
 router.post("/layer", controller.postLayer);
@@ -22,11 +22,11 @@ router.get("/single-shape", controller.getSingleShape);
 
 router.post("/create-geom", controller.postGeoData);
 
-router.post("/editMap", controller.editMap);
+router.post("/edit-map", controller.editMap);
 
-router.post("/editLayer", controller.editLayer);
+router.post("/edit-layer", controller.editLayer);
 
-router.post("/editData", controller.editGeoData);
+router.post("/edit-data", controller.editGeoData);
 
 router.post("/delete-geom", controller.deleteGeoData);
 router.post("/delete-layer", controller.deleteLayer);
