@@ -7,7 +7,7 @@ const getMap = async (req, res) => {
     const {
       rows,
     } = await db.query(
-      `SELECT "Maps"."mapID" AS key, "Maps"."mapName" AS title FROM "Maps" JOIN "Users" ON "Maps"."userID" = "Users"."userID" WHERE "Users"."userID" = $1`,
+      `SELECT "Maps"."mapID" AS key, "Maps"."mapName" AS title FROM "Maps" JOIN "Users" ON "Maps"."userID" = "Users"."userID" WHERE "Users"."userID" = $1 ORDER BY "mapName" ASC `,
       [username]
     );
     maps = rows;
@@ -18,7 +18,7 @@ const getMap = async (req, res) => {
           const {
             rows,
           } = await db.query(
-            `SELECT "layerID" as key, "layerName" AS title FROM "Layers" WHERE "mapID" = $1`,
+            `SELECT "layerID" as key, "layerName" AS title FROM "Layers" WHERE "mapID" = $1 ORDER BY "layerName" ASC `,
             [map.key]
           );
           map.children = rows;
@@ -187,9 +187,9 @@ const postGeoData = async (req, res) => {
 
 const editMap = async (req, res) => {
   // console.log(req.body)
-  const { mapID, userID, mapName, iconID } = req.body; //mapName: new name
-  // const iconID = '0da68f26-5e2c-4d44-ab62-dd8431dc3d6d'
-  // const userID = '16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0'
+  const { mapID, mapName } = req.body; //mapName: new name
+  const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
+  const userID = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
   try {
     const {
       rows,
@@ -218,8 +218,8 @@ const editMap = async (req, res) => {
 
 const editLayer = async (req, res) => {
   // console.log(req.body)
-  const { layerID, mapID, layerName, iconID } = req.body; //layerName: new name
-  // const iconID = '0da68f26-5e2c-4d44-ab62-dd8431dc3d6d'
+  const { layerID, mapID, layerName } = req.body; //layerName: new name
+  const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
   // const mapID = '3943d0b1-ff9b-4b2e-8b0a-d25582a122dd'
   try {
     const {
