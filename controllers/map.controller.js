@@ -34,22 +34,23 @@ const getMap = async (req, res) => {
 };
 
 const checkMapName = async (req, res) => {
-  const mapName = req.body.mapName
-  const userID = req.body.userID??'16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0'
+  const mapName = req.body.mapName;
+  const userID = req.body.userID || "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
 
-  let strQuery = `SELECT * FROM "Maps" WHERE "userID" = '${userID}' AND "mapName" = '${mapName}'`
-  let { rows } = await db.query(strQuery, [])
-  if (rows.length === 0) res.status(200).send({msg:'ok'}); else res.status(409).send({msg:'Name of map is exist'})
-}
+  let strQuery = `SELECT * FROM "Maps" WHERE "userID" = '${userID}' AND "mapName" = '${mapName}'`;
+  let { rows } = await db.query(strQuery, []);
+  if (rows.length === 0) res.status(200).send({ msg: "ok" });
+  else res.status(409).send({ msg: "Name of map is exist" });
+};
 const checkLayerName = async (req, res) => {
-  const layerName = req.body.layerName
-  const mapID = req.body.mapID
+  const layerName = req.body.layerName;
+  const mapID = req.body.mapID;
 
-  let strQuery = `SELECT * FROM "Layers" WHERE "mapID" = '${mapID}' AND "layerName" = '${layerName}'`
-  let { rows } = await db.query(strQuery, [])
-  if (rows.length === 0) res.status(200).send({msg:'ok'}); else res.status(409).send({msg:'Name of layer is exist'})
-}
-
+  let strQuery = `SELECT * FROM "Layers" WHERE "mapID" = '${mapID}' AND "layerName" = '${layerName}'`;
+  let { rows } = await db.query(strQuery, []);
+  if (rows.length === 0) res.status(200).send({ msg: "ok" });
+  else res.status(409).send({ msg: "Name of layer is exist" });
+};
 
 const getData = async (req, res) => {
   if (!req.query.layerId) {
@@ -73,21 +74,21 @@ const getData = async (req, res) => {
   }
 };
 
-const getSingleMP = async (req,res) => {
-  let {geoID } = req.query
+const getSingleMP = async (req, res) => {
+  let { geoID } = req.query;
   let strQuery = `SELECT ST_AsGeoJSON(geom) AS geom FROM "GeoData" AS geo WHERE "geoID" = '${geoID}'`;
   // let strQuery = `SELECT ST_AsGeoJSON(geom) AS geom FROM "GeoData" AS geo WHERE "layerID" = '07582163-534f-40a3-b510-43c0dc8be98c'`;
-  let {rows} = await db.query(strQuery, []);
-  res.send(rows[0].geom)
-}
+  let { rows } = await db.query(strQuery, []);
+  res.send(rows[0].geom);
+};
 
-const getSingleShape = async (req,res) => {
-  let {geoID } = req.query
+const getSingleShape = async (req, res) => {
+  let { geoID } = req.query;
   let strQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "GeoData" AS geo WHERE "geoID" = '${geoID}'`;
-  let {rows} = await db.query(strQuery, []);
-  console.log(rows)
-  res.status(200).send(rows[0].geom.features[0])
-}
+  let { rows } = await db.query(strQuery, []);
+  console.log(rows);
+  res.status(200).send(rows[0].geom.features[0]);
+};
 
 const getDefaultLayer = async (req, res) => {
   try {
@@ -150,7 +151,7 @@ const postLayer = async (req, res) => {
         `INSERT INTO "Layers"("layerName", "mapID", "iconID") VALUES ($1, $2, $3)`,
         [layerName, mapID, iconID]
       );
-      res.status(201).send({msg:'Success'});
+      res.status(201).send({ msg: "Success" });
       return;
     }
   } catch (err) {
@@ -177,7 +178,7 @@ const postGeoData = async (req, res) => {
       const strQuery = `INSERT INTO "GeoData"("layerID", "geoName", "geom", "description", "radius") VALUES ('${layerID}', '${geoName}', ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326), '${description}', '${radius}')`;
       console.log(strQuery);
       await db.query(strQuery, []);
-      res.status(201).send({msg:'Success'});
+      res.status(201).send({ msg: "Success" });
     }
   } catch (err) {
     console.error(err);
@@ -207,7 +208,7 @@ const editMap = async (req, res) => {
       WHERE "mapID" = $3`,
         [mapName, iconID, mapID]
       );
-      res.status(200).send();
+      res.status(200).send({ success: true, msg: "ok" });
       return;
     }
   } catch (err) {
@@ -228,14 +229,14 @@ const editLayer = async (req, res) => {
       [mapID, layerName]
     );
     if (rows.length !== 0) {
-      res.send({ msg: `Name of layer is exist` });
+      res.status(409).send({ msg: `Name of layer is exist` });
       return;
     } else {
       await db.query(
-        `UPDATE "Layers" SET "layerName" = $1, "iconID" = $2 WHERE "layerID" = $3`,
-        [layerName, iconID, layerID]
+        `UPDATE "Layers" SET "layerName" = $1, "iconID" = $2, "mapID" = $3 WHERE "layerID" = $4`,
+        [layerName, iconID, mapID, layerID]
       );
-      res.status(200).send();
+      res.status(200).send({ success: true, msg: "ok" });
       return;
     }
   } catch (err) {
@@ -304,8 +305,6 @@ const editGeoData = async (req, res) => {
       // console.log(strQuery);
       await db.query(strQuery, []);
 
-      
-
       res.status(200).send();
       // }
     } catch (err) {
@@ -316,7 +315,7 @@ const editGeoData = async (req, res) => {
 
 // const editGeoDatav2 = async (req,res) => {
 //   let geomArr = req.body;
-//   let strQuery =`INSERT INTO "GeoData" (geoID,geom) VALUES ` 
+//   let strQuery =`INSERT INTO "GeoData" (geoID,geom) VALUES `
 //   geom.Arr.forEach(geoItem => {
 
 //   })
@@ -327,7 +326,7 @@ const editGeoData = async (req, res) => {
 //   (4, 'a4', 'b4', 'c4'),
 //   (5, 'a5', 'b5', 'c5'),
 //   (6, 'a6', 'b6', 'c6')
-  
+
 //   `ON DUPLICATE KEY UPDATE id=VALUES(id),
 //   a=VALUES(a),
 //   b=VALUES(b),
@@ -341,7 +340,9 @@ const editGeoData = async (req, res) => {
 const deleteGeoData = async (req, res) => {
   let { id } = req.body;
   console.log(id);
-  let strQuery = `DELETE FROM "GeoData" WHERE "geoID" IN ('${id.join("','")}')`;
+  let strQuery = Array.isArray(id)
+    ? `DELETE FROM "GeoData" WHERE "geoID" IN ('${id.join("','")}')` //delete many geom
+    : `DELETE FROM "GeoData" WHERE "geoID" = '${id}'`; //delete 1 geom
   console.log(strQuery);
   await db.query(strQuery, (err, results) => {
     if (err) console.log(err);
@@ -351,25 +352,55 @@ const deleteGeoData = async (req, res) => {
     }
   });
 };
+const deleteMap = async (req, res) => {
+  let { mapID } = req.body;
+  let strQueryDelGeom = `DELETE FROM "GeoData" WHERE "layerID" IN (SELECT "layerID" FROM "Layers" WHERE "mapID" = '${mapID}')`;
+  let strQueryDelLayer = `DELETE FROM "Layers" WHERE "mapID" = '${mapID}'`;
+  let strQueryDelMap = `DELETE FROM "Maps" WHERE "mapID" = '${mapID}'`;
+  console.log("del geom ", strQueryDelGeom);
+  console.log("del layer ", strQueryDelLayer);
+  console.log("del map ", strQueryDelMap);
+  try {
+    await db.query(strQueryDelGeom, []);
+    await db.query(strQueryDelLayer, []);
+    await db.query(strQueryDelMap, []);
+    res.status(200).send({ success: true, msg: "ok" });
+  } catch (error) {
+    res.status(400).send({ success: false, msg: error });
+  }
+};
 
-const search = async (req,res) => {
-  let { input } = req.query
+const deleteLayer = async (req, res) => {
+  let { layerID } = req.body;
+  let strQueryDelGeom = `DELETE FROM "GeoData" WHERE "layerID" = '${layerID}'`;
+  let strQueryDelLayer = `DELETE FROM "Layers" WHERE "layerID" = '${layerID}'`;
+  console.log("del geom ", strQueryDelGeom);
+  console.log("del layer ", strQueryDelLayer);
+  try {
+    await db.query(strQueryDelGeom, []);
+    await db.query(strQueryDelLayer, []);
+    res.status(200).send({ success: true, msg: "ok" });
+  } catch (error) {
+    res.status(400).send({ success: false, msg: error });
+  }
+};
+const search = async (req, res) => {
+  let { input } = req.query;
   // let arrOption = []
-  console.log(input)
-  try{
+  console.log(input);
+  try {
     if (input) {
-      let strQuery = `SELECT "geoName", "geoID" FROM "GeoData" WHERE "geoName" LIKE '%${input}%'`  //query tam.
-      let { rows } = await db.query(strQuery, [])
+      let strQuery = `SELECT "geoName", "geoID" FROM "GeoData" WHERE "geoName" LIKE '%${input}%'`; //query tam.
+      let { rows } = await db.query(strQuery, []);
       // rows.forEach(item => arrOption.push(item))
       // console.log(arrOption)
-      console.log(rows)
-      res.status(200).send(rows)
-    } else res.status(404)
-  } catch(err){
+      console.log(rows);
+      res.status(200).send(rows);
+    } else res.status(404);
+  } catch (err) {
     console.log(err);
   }
-  
-}
+};
 module.exports = {
   getMap,
   getData,
@@ -382,8 +413,10 @@ module.exports = {
   editLayer,
   editGeoData,
   deleteGeoData,
+  deleteMap,
+  deleteLayer,
   search,
   getSingleShape,
   checkMapName,
-  checkLayerName
+  checkLayerName,
 };

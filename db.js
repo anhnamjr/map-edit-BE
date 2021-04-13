@@ -2,9 +2,10 @@ const Pool = require("pg").Pool;
 
 const pool = new Pool({
   user: "postgres",
-  host: "192.168.15.139",
+  host: "localhost",
+  // host: "192.168.15.139",
   database: "mapdbnew",
-  password: "1234",
+  password: "123456",
   port: 5432,
 });
 
@@ -13,12 +14,10 @@ const pool = new Pool({
 // const pool =  new Pool({
 //   connectionString,
 //   ssl: {
-//     rejectUnauthorized: false 
+//     rejectUnauthorized: false
 //   }
 // })
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
-}
-
-
+};

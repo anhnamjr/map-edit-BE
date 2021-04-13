@@ -16,9 +16,9 @@ router.get("/data", controller.getData);
 
 router.get("/default-layer", controller.getDefaultLayer);
 
-router.get("/single-MP",controller.getSingleMP);
+router.get("/single-MP", controller.getSingleMP);
 
-router.get("/single-shape",controller.getSingleShape);
+router.get("/single-shape", controller.getSingleShape);
 
 router.post("/create-geom", controller.postGeoData);
 
@@ -29,12 +29,14 @@ router.post("/editLayer", controller.editLayer);
 router.post("/editData", controller.editGeoData);
 
 router.post("/delete-geom", controller.deleteGeoData);
+router.post("/delete-layer", controller.deleteLayer);
+router.post("/delete-map", controller.deleteMap);
 
 router.post("/edit-geom", controller.editGeoData);
 
 router.post("/sign-in", user.signIn);
 router.post("/sign-up", user.signUp);
 
-router.get("/search",controller.search);
+router.get("/search", controller.search);
 
 module.exports = router;
