@@ -2,10 +2,11 @@ const express = require("express");
 
 const controller = require("../controllers/map.controller");
 const user = require("../controllers/user.controller");
+const verifyToken = require("../auth/verify.token")
 
 const router = express.Router();
 
-router.get("/maps", controller.getMap);
+router.get("/maps", verifyToken, controller.getMap);
 router.post("/check-map-name", controller.checkMapName);
 router.post("/check-layer-name", controller.checkLayerName);
 router.post("/map", controller.postMap);
