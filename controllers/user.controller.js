@@ -1,7 +1,6 @@
 const db = require("../db");
 const bcrypt = require("bcryptjs");
 var jwt = require("jsonwebtoken");
-const { response } = require("express");
 require("dotenv").config();
 
 const isUserExisted = async (username) => {
@@ -21,6 +20,7 @@ const isEmailExisted = async (email) => {
 };
 
 const signIn = async (req, res) => {
+  console.log(req.body)
   const { username, password } = req.body;
   const { rows } = await db.query(
     `SELECT * FROM "Users" WHERE username='${username}'`
@@ -72,8 +72,6 @@ const signUp = async (req, res) => {
 
     let strQuery = `INSERT INTO "Users" (username, password, email, role) VALUES ('${user.username}', '${user.password}', '${user.email}', 'user')`;
 
-    // const password = await bcrypt.hash(req.body.password);
-    // const username = req.body.username;
     console.log(strQuery);
     let response = await db.query(strQuery);
     res.status(201).send({ msg: "Sign up success!" });
