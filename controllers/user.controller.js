@@ -20,24 +20,25 @@ const isEmailExisted = async (email) => {
 };
 
 const signIn = async (req, res) => {
-  console.log(req.body)
+  console.log(req.body);
   const { username, password } = req.body;
   const { rows } = await db.query(
     `SELECT * FROM "Users" WHERE username='${username}'`
   );
   const user = rows[0];
-  if (!user) res.status(404).send({ 
-    auth: false,
-    message: "username or password not match",
-    token: null
-  });
+  if (!user)
+    res.status(404).send({
+      auth: false,
+      message: "username or password not match",
+      token: null,
+    });
 
   bcrypt.compare(password, user.password, (err, response) => {
     if (err) {
       res.status(500).send({ msg: err });
     }
     if (response) {
-      let token = jwt.sign({ userID: user.userID }, process.env.SECRET, {
+      let token = jwt.sign({ user: user }, process.env.SECRET, {
         expiresIn: 86400, // expires in 24 hours
       });
       res.status(200).send({
@@ -50,7 +51,7 @@ const signIn = async (req, res) => {
       res.status(400).send({
         auth: false,
         message: "username or password not match",
-        token: null
+        token: null,
       });
       return;
     }
