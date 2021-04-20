@@ -1,8 +1,7 @@
 const db = require("../db");
 
 const getMap = async (req, res) => {
-  const userID = req.userID;
-
+  const {userID} = req.userID;
   let maps;
   try {
     const {
@@ -36,7 +35,7 @@ const getMap = async (req, res) => {
 
 const checkMapName = async (req, res) => {
   const mapName = req.body.mapName;
-  const userID = req.userID || "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
+  const userID = req.body.userID || "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
 
   let strQuery = `SELECT * FROM "Maps" WHERE "userID" = '${userID}' AND "mapName" = '${mapName}'`;
   let { rows } = await db.query(strQuery, []);
@@ -109,7 +108,7 @@ const postMap = async (req, res) => {
   // console.log(req.body)
   const { mapName } = req.body;
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
-  const userID = req.userID;
+  const userID = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
   try {
     const {
       rows,
@@ -161,9 +160,18 @@ const postLayer = async (req, res) => {
 };
 
 const postGeoData = async (req, res) => {
-  let { layerID, geoName, geom, description, radius } = req.body;
-  if (radius === undefined) radius = 0;
-  console.log(req.body);
+  let { geometry, properties } = req.body.editedGeom;
+  const { color, dashArray, dayModify, description, fill,
+    fillOpacity,
+    geoID,
+    geoName,
+    layerID,
+    radius = 0,
+    weight } = properties
+
+  // if (radius === undefined) radius = 0;
+
+  // console.log(req.body);
   // geom = `ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326))`
   // console.log(geom)
   try {
@@ -176,7 +184,7 @@ const postGeoData = async (req, res) => {
     if (rows.length !== 0) {
       res.status(409).send({ msg: `Name of geo data is exist` });
     } else {
-      const strQuery = `INSERT INTO "GeoData"("layerID", "geoName", "geom", "description", "radius") VALUES ('${layerID}', '${geoName}', ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326), '${description}', '${radius}')`;
+      const strQuery = `INSERT INTO "GeoData"("layerID", "geoName", "geom", "description", "radius", "color", "fill", "fillOpacity") VALUES ('${layerID}', '${geoName}', ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(geometry)}'),4326), '${description}', '${radius}', '#3388ff', '#3388ff', '0.2')`;
       console.log(strQuery);
       await db.query(strQuery, []);
       res.status(201).send({ msg: "Success" });
@@ -190,7 +198,7 @@ const editMap = async (req, res) => {
   // console.log(req.body)
   const { mapID, mapName } = req.body; //mapName: new name
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
-  const userID = req.userID;
+  const userID = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
   try {
     const {
       rows,
@@ -246,97 +254,71 @@ const editLayer = async (req, res) => {
 };
 
 const editGeoData = async (req, res) => {
-  let geomArr = req.body;
-  console.log(geomArr);
-  geomArr.forEach(async (geomItem) => {
-    let { geoID, geom, radius } = geomItem;
-    // let { geoID, layerID, geoName, geom, description, categoryID, color } = req.body
-    // geom = `ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326))`
-    // console.log(geom)
-    try {
-      let { layerID } = await db
-        .query(`SELECT * FROM "GeoData" WHERE "geoID" = '${geoID}'`, [])
-        .then((result) => {
-          return result.rows[0];
-        });
+  const { properties, geometry } = req.body.editedGeom;
+  // const { coordinates } = geometry
+  const { color, dashArray, dayModify, description, fill,
+  fillOpacity,
+  geoID,
+  geoName,
+  layerID,
+  radius,
+  weight } = properties
+  try {
+    // let { layerID } = await db
+    //   .query(`SELECT * FROM "GeoData" WHERE "geoID" = '${geoID}'`, [])
+    //   .then((result) => {
+    //     return result.rows[0];
+    //   });
 
-      console.log(layerID);
+    // console.log(layerID);
+    geom = JSON.stringify(geometry);
 
-      // const {
-      //   rows,
-      // } = await db.query(
-      //   `SELECT * FROM "GeoData" WHERE "layerID" = $1 AND "geoName" = $2`,
-      //   [layerID, geoName]
-      // );
+    let strQuery = `UPDATE "GeoData" SET 
+      "layerID" = '${layerID}', 
+      "dashArray" = '${dashArray}', 
+      "dayModify" = to_timestamp(${Date.now()}),
+      "description" = '${description}',
+      "fill" = '${fill}',
+      "fillOpacity" = '${fillOpacity}',
+      "geoName" = '${geoName}',
+      "radius" = '${radius}',
+      "weight" = '${weight}',
+      "color" = '${color}',
+      "geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326)
+      WHERE "geoID" = '${geoID}'`;
+    
+    // if (geom) {
+    //   geom = JSON.stringify(geom);
+    //   strQuery += `"geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326), `;
+    // }
 
-      // console.log(rows);
-      // if (rows.length !== 0) {
-      //   res.send({ msg: `Name of geo data in same layer is exist` });
-      // } else {
+    // if (radius) {
+    //   strQuery += `"radius" = '${radius}', `;
+    // }
 
-      // const strQuery = `UPDATE "GeoData" SET "layerID" = '${layerID}', "geoName" = '${geoName}', "geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326), "description" = '${description}', "categoryID" = '${categoryID}', "color" = '${color}' WHERE "geoID" = '${geoID}'`
-      let strQuery = `UPDATE "GeoData" SET "layerID" = '${layerID}', `;
-      //  "categoryID" = '${categoryID}', "color" = '${color}'
+    // if (description) {
+    //   strQuery += `"description" = '${description}', `;
+    // }
+    // if (categoryID) {
+    //   strQuery += `"categoryID" = '${categoryID}', `;
+    // }
+    // if (color) {
+    //   strQuery += `"color" = '${color}', `;
+    // }
 
-      // if (geoName) {
-      //   strQuery += `"geoName" = '${geoName}', `;
-      // }
-      if (geom) {
-        geom = JSON.stringify(geom);
-        strQuery += `"geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326), `;
-      }
+    // strQuery = strQuery.slice(0, strQuery.length - 2);
 
-      if (radius) {
-        strQuery += `"radius" = '${radius}', `;
-      }
-      // if (description) {
-      //   strQuery += `"description" = '${description}', `;
-      // }
-      // if (categoryID) {
-      //   strQuery += `"categoryID" = '${categoryID}', `;
-      // }
-      // if (color) {
-      //   strQuery += `"color" = '${color}', `;
-      // }
+    // console.log(strQuery);
+    await db.query(strQuery, []);
 
-      strQuery = strQuery.slice(0, strQuery.length - 2);
-
-      strQuery += ` WHERE "geoID" = '${geoID}'`;
-
-      // console.log(strQuery);
-      await db.query(strQuery, []);
-
-      res.status(200).send();
-      // }
-    } catch (err) {
-      console.error(err);
-    }
-  });
+    res.status(200).send();
+    // }
+  } catch (err) {
+    console.error(err);
+  }
 };
 
-// const editGeoDatav2 = async (req,res) => {
-//   let geomArr = req.body;
-//   let strQuery =`INSERT INTO "GeoData" (geoID,geom) VALUES `
-//   geom.Arr.forEach(geoItem => {
 
-//   })
-
-//   (1, 'a1', 'b1', 'c1'),
-//   (2, 'a2', 'b2', 'c2'),
-//   (3, 'a3', 'b3', 'c3'),
-//   (4, 'a4', 'b4', 'c4'),
-//   (5, 'a5', 'b5', 'c5'),
-//   (6, 'a6', 'b6', 'c6')
-
-//   `ON DUPLICATE KEY UPDATE id=VALUES(id),
-//   a=VALUES(a),
-//   b=VALUES(b),
-//   c=VALUES(c);`
-
-//   strQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "GeoData" AS geo WHERE "geoID" = '${geoID}`;
-//       console.log(strQuery);
-//       const { rows } = await db.query(strQuery, []);
-// }
 
 const deleteGeoData = async (req, res) => {
   let { id } = req.body;
