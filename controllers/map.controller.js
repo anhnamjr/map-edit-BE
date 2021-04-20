@@ -1,14 +1,15 @@
 const db = require("../db");
 
 const getMap = async (req, res) => {
-  const username = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
+  const userID = req.userID;
+
   let maps;
   try {
     const {
       rows,
     } = await db.query(
       `SELECT "Maps"."mapID" AS key, "Maps"."mapName" AS title FROM "Maps" JOIN "Users" ON "Maps"."userID" = "Users"."userID" WHERE "Users"."userID" = $1 ORDER BY "mapName" ASC `,
-      [username]
+      [userID]
     );
     maps = rows;
     // console.log(maps);
@@ -35,7 +36,7 @@ const getMap = async (req, res) => {
 
 const checkMapName = async (req, res) => {
   const mapName = req.body.mapName;
-  const userID = req.body.userID || "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
+  const userID = req.userID || "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
 
   let strQuery = `SELECT * FROM "Maps" WHERE "userID" = '${userID}' AND "mapName" = '${mapName}'`;
   let { rows } = await db.query(strQuery, []);
@@ -108,7 +109,7 @@ const postMap = async (req, res) => {
   // console.log(req.body)
   const { mapName } = req.body;
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
-  const userID = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
+  const userID = req.userID;
   try {
     const {
       rows,
@@ -189,7 +190,7 @@ const editMap = async (req, res) => {
   // console.log(req.body)
   const { mapID, mapName } = req.body; //mapName: new name
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
-  const userID = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
+  const userID = req.userID;
   try {
     const {
       rows,
