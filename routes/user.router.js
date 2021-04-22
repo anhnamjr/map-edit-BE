@@ -8,7 +8,7 @@ router.post("/check-map-name", controller.checkMapName);
 router.post("/check-layer-name", controller.checkLayerName);
 router.post("/map", controller.postMap);
 
-router.post("/layer", controller.postLayer);
+router.post("/layer", controller.createLayer);
 
 router.get("/data", controller.getData);
 

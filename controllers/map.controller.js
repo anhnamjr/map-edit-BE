@@ -1,7 +1,7 @@
 const db = require("../db");
-
+const slug = require("../utils/slug");
 const getMap = async (req, res) => {
-  const {userID} = req.userID;
+  const { userID } = req.userID;
   let maps;
   try {
     const {
@@ -132,42 +132,93 @@ const postMap = async (req, res) => {
   }
 };
 
-const postLayer = async (req, res) => {
-  const { layerName, mapID } = req.body;
+const createLayer = async (req, res) => {
+  //1. create new table for layer
+  //2. add table name to Maps.layer
+
+  let { mapName, mapID, layerName, attribute, username } = req.body;
   // const mapID = "3943d0b1-ff9b-4b2e-8b0a-d25582a122dd";
-  const iconID = "2ea20597-03c5-4307-9d57-a5c1c2caf143";
-  try {
-    const {
-      rows,
-    } = await db.query(
-      `SELECT * FROM "Layers" WHERE "mapID" = $1 AND "layerName" = $2`,
-      [mapID, layerName]
-    );
-    if (rows.length !== 0) {
-      res.status(409).send({ msg: `Name of layer is exist` });
-      return;
-    } else {
-      await db.query(
-        `INSERT INTO "Layers"("layerName", "mapID", "iconID") VALUES ($1, $2, $3)`,
-        [layerName, mapID, iconID]
-      );
-      res.status(201).send({ msg: "Success" });
-      return;
-    }
-  } catch (err) {
-    throw err;
-  }
+  let tableName = slug(username + mapName + layerName);
+  let strQuery = `CREATE TABLE IF NOT EXISTS ${tableName} (
+    "geoID" uuid NOT NULL DEFAULT uuid_generate_v4(),
+    "geom" "public"."geometry",\n`;
+  console.log(attribute);
+  attribute = JSON.parse(attribute);
+  console.log(attribute);
+  attribute.forEach((col) => {
+    strQuery += `"${col.name}" ${col.datatype} ${col.constraint || ""},\n`;
+  });
+  strQuery = strQuery.slice(0, strQuery.length - 2);
+  strQuery += "\n)";
+  console.log(strQuery);
+
+  // await db.query(strQuery,[])
+
+
+  // add table name to Maps.layer
+  let { rows } = await db.query(
+    `SELECT "listLayer" FROM "Maps" WHERE "mapID" = '${mapID}'`,
+    []
+  );
+  let listLayer = rows[0].listLayer
+  console.log(listLayer);
+  res.send(listLayer);
+  let example = `
+ CREATE TABLE "GeoData" (
+  "geoID" uuid NOT NULL DEFAULT uuid_generate_v4(),
+  "layerID" uuid,
+  "geoName" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
+  "geom" "public"."geometry",
+  "description" text COLLATE "pg_catalog"."default",
+  "color" varchar(7) COLLATE "pg_catalog"."default" DEFAULT '#333'::character varying,
+  "dayModify" timestamp(6),
+  "properties" varchar COLLATE "pg_catalog"."default",
+  "radius" numeric,
+  "fill" varchar(7) COLLATE "pg_catalog"."default" DEFAULT '#123'::character varying,
+  "fillOpacity" numeric DEFAULT 0.3,
+  "weight" numeric DEFAULT 0.3,
+  "dashArray" numeric DEFAULT 1
+)
+ `;
+  // const iconID = "2ea20597-03c5-4307-9d57-a5c1c2caf143";
+  // try {
+  //   const {
+  //     rows,
+  //   } = await db.query(
+  //     `SELECT * FROM "Layers" WHERE "mapID" = $1 AND "layerName" = $2`,
+  //     [mapID, layerName]
+  //   );
+  //   if (rows.length !== 0) {
+  //     res.status(409).send({ msg: `Name of layer is exist` });
+  //     return;
+  //   } else {
+  //     await db.query(
+  //       `INSERT INTO "Layers"("layerName", "mapID", "iconID") VALUES ($1, $2, $3)`,
+  //       [layerName, mapID, iconID]
+  //     );
+  //     res.status(201).send({ msg: "Success" });
+  //     return;
+  //   }
+  // } catch (err) {
+  //   throw err;
+  // }
 };
 
 const postGeoData = async (req, res) => {
   let { geometry, properties } = req.body.editedGeom;
-  const { color, dashArray, dayModify, description, fill,
+  const {
+    color,
+    dashArray,
+    dayModify,
+    description,
+    fill,
     fillOpacity,
     geoID,
     geoName,
     layerID,
     radius = 0,
-    weight } = properties
+    weight,
+  } = properties;
 
   // if (radius === undefined) radius = 0;
 
@@ -184,7 +235,9 @@ const postGeoData = async (req, res) => {
     if (rows.length !== 0) {
       res.status(409).send({ msg: `Name of geo data is exist` });
     } else {
-      const strQuery = `INSERT INTO "GeoData"("layerID", "geoName", "geom", "description", "radius", "color", "fill", "fillOpacity") VALUES ('${layerID}', '${geoName}', ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(geometry)}'),4326), '${description}', '${radius}', '#3388ff', '#3388ff', '0.2')`;
+      const strQuery = `INSERT INTO "GeoData"("layerID", "geoName", "geom", "description", "radius", "color", "fill", "fillOpacity") VALUES ('${layerID}', '${geoName}', ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(
+        geometry
+      )}'),4326), '${description}', '${radius}', '#3388ff', '#3388ff', '0.2')`;
       console.log(strQuery);
       await db.query(strQuery, []);
       res.status(201).send({ msg: "Success" });
@@ -256,13 +309,19 @@ const editLayer = async (req, res) => {
 const editGeoData = async (req, res) => {
   const { properties, geometry } = req.body.editedGeom;
   // const { coordinates } = geometry
-  const { color, dashArray, dayModify, description, fill,
-  fillOpacity,
-  geoID,
-  geoName,
-  layerID,
-  radius,
-  weight } = properties
+  const {
+    color,
+    dashArray,
+    dayModify,
+    description,
+    fill,
+    fillOpacity,
+    geoID,
+    geoName,
+    layerID,
+    radius,
+    weight,
+  } = properties;
   try {
     // let { layerID } = await db
     //   .query(`SELECT * FROM "GeoData" WHERE "geoID" = '${geoID}'`, [])
@@ -286,7 +345,7 @@ const editGeoData = async (req, res) => {
       "color" = '${color}',
       "geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326)
       WHERE "geoID" = '${geoID}'`;
-    
+
     // if (geom) {
     //   geom = JSON.stringify(geom);
     //   strQuery += `"geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326), `;
@@ -317,8 +376,6 @@ const editGeoData = async (req, res) => {
     console.error(err);
   }
 };
-
-
 
 const deleteGeoData = async (req, res) => {
   let { id } = req.body;
@@ -390,7 +447,7 @@ module.exports = {
   getSingleMP,
   getDefaultLayer,
   postMap,
-  postLayer,
+  createLayer,
   postGeoData,
   editMap,
   editLayer,
