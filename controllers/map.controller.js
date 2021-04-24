@@ -137,71 +137,50 @@ const createLayer = async (req, res) => {
   //2. add table name to Maps.layer
 
   let { mapName, mapID, layerName, attribute, username } = req.body;
-  // const mapID = "3943d0b1-ff9b-4b2e-8b0a-d25582a122dd";
+
   let tableName = slug(username + mapName + layerName);
-  let strQuery = `CREATE TABLE IF NOT EXISTS ${tableName} (
-    "geoID" uuid NOT NULL DEFAULT uuid_generate_v4(),
-    "geom" "public"."geometry",\n`;
-  console.log(attribute);
-  attribute = JSON.parse(attribute);
-  console.log(attribute);
-  attribute.forEach((col) => {
-    strQuery += `"${col.name}" ${col.datatype} ${col.constraint || ""},\n`;
-  });
-  strQuery = strQuery.slice(0, strQuery.length - 2);
-  strQuery += "\n)";
-  console.log(strQuery);
 
-  // await db.query(strQuery,[])
-
-
-  // add table name to Maps.layer
-  let { rows } = await db.query(
-    `SELECT "listLayer" FROM "Maps" WHERE "mapID" = '${mapID}'`,
-    []
-  );
-  let listLayer = rows[0].listLayer
-  console.log(listLayer);
-  res.send(listLayer);
-  let example = `
- CREATE TABLE "GeoData" (
-  "geoID" uuid NOT NULL DEFAULT uuid_generate_v4(),
-  "layerID" uuid,
-  "geoName" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
-  "geom" "public"."geometry",
-  "description" text COLLATE "pg_catalog"."default",
-  "color" varchar(7) COLLATE "pg_catalog"."default" DEFAULT '#333'::character varying,
-  "dayModify" timestamp(6),
-  "properties" varchar COLLATE "pg_catalog"."default",
-  "radius" numeric,
-  "fill" varchar(7) COLLATE "pg_catalog"."default" DEFAULT '#123'::character varying,
-  "fillOpacity" numeric DEFAULT 0.3,
-  "weight" numeric DEFAULT 0.3,
-  "dashArray" numeric DEFAULT 1
-)
- `;
-  // const iconID = "2ea20597-03c5-4307-9d57-a5c1c2caf143";
-  // try {
-  //   const {
-  //     rows,
-  //   } = await db.query(
-  //     `SELECT * FROM "Layers" WHERE "mapID" = $1 AND "layerName" = $2`,
-  //     [mapID, layerName]
-  //   );
-  //   if (rows.length !== 0) {
-  //     res.status(409).send({ msg: `Name of layer is exist` });
-  //     return;
-  //   } else {
-  //     await db.query(
-  //       `INSERT INTO "Layers"("layerName", "mapID", "iconID") VALUES ($1, $2, $3)`,
-  //       [layerName, mapID, iconID]
-  //     );
-  //     res.status(201).send({ msg: "Success" });
-  //     return;
-  //   }
-  // } catch (err) {
-  //   throw err;
-  // }
+  try {
+    let { rows } = await db.query(
+      `SELECT "listLayer" FROM "Maps" WHERE "mapID" = '${mapID}'`,
+      []
+    );
+    let listLayer = rows[0].listLayer
+  
+    if (listLayer.includes(tableName)) {
+      res.status(409).send({success: false, msg: "Layer was existed"})
+    }
+  
+    let strQuery = `CREATE TABLE IF NOT EXISTS ${tableName} (
+      "geoID" uuid NOT NULL DEFAULT uuid_generate_v4(),
+      "geom" "public"."geometry",\n`;
+    attribute = JSON.parse(attribute);
+    attribute.forEach((col) => {
+      strQuery += `"${col.name}" ${col.datatype} ${col.constraint || ""},\n`;
+    });
+    strQuery = strQuery.slice(0, strQuery.length - 2);
+    strQuery += "\n)";
+    console.log(strQuery);
+  
+    await db.query(strQuery,[])
+  
+  
+    // add table name to Maps.layer
+    
+    listLayer.push(tableName)
+    let updateQuery = 
+    `UPDATE "Maps"
+    SET "listLayer" = '{${listLayer}}'
+    WHERE "mapID" = '${mapID}'
+    `
+    let {update} = await db.query(
+      updateQuery,[]
+    )
+    res.status(201).send({success: true, msg: "Add layer success!"});
+  } catch (error) {
+    console.log(error)
+    res.status(400).send({success: false, msg: error})
+  }
 };
 
 const postGeoData = async (req, res) => {
