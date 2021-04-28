@@ -6,6 +6,7 @@ const router = express.Router();
 router.get("/maps", controller.getMap);
 router.post("/check-map-name", controller.checkMapName);
 router.post("/check-layer-name", controller.checkLayerName);
+router.get("/layer-column", controller.getColumnTableLayer)
 router.post("/map", controller.postMap);
 
 router.post("/layer", controller.createLayer);

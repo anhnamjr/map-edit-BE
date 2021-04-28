@@ -32,7 +32,7 @@ const getMap = async (req, res) => {
   } catch (err) {
     console.error(err);
   }
-  console.log(maps);
+  // console.log(maps);
   res.status(200).send({ maps });
 };
 
@@ -97,15 +97,21 @@ const getData = async (req, res) => {
     let tableNameArr = resQuery.rows.map((item) => item.tableName);
 
     try {
-      let geom = { type: "FeatureCollection", features: [] };
-      tableNameArr.forEach(async (tableName) => {
-        let strQuery = `SELECT json_build_object('features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo`;
-        const { rows } = await db.query(strQuery, []);
-        if (rows[0].geom.features !== null)
-          geom.features.push(...rows[0].geom.features);
+      let result = { type: "FeatureCollection", features: [] };
+      let strQuery = []
+      tableNameArr.forEach((tableName) => {
+        strQuery.push(`SELECT jsonb_build_object('features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo`);
+        
       });
-      console.log("geom arr:", geom);
-      res.send(geom);
+      strQuery = strQuery.join(' UNION ')
+      const { rows } = await db.query(strQuery,[])
+      console.log(rows)
+      rows.forEach( row => {
+        result.features.push(...row.geom.features)
+      })
+      // if (rows[0].geom.features !== null)
+      //     geom.features.push(...rows[0].geom.features);
+      res.send(result);
     } catch (err) {
       throw err;
     }
@@ -162,11 +168,11 @@ const postMap = async (req, res) => {
         `INSERT INTO "Maps"("mapName", "userID", "iconID") VALUES ($1, $2, $3)`,
         [mapName, userID, iconID]
       );
-      res.status(201).send({ msg: `Success` });
+      res.status(201).send({ success: true, msg: `Add map success` });
       return;
     }
   } catch (err) {
-    throw err;
+    res.status(400).send({ success: false, msg: err});
   }
 };
 
@@ -234,24 +240,35 @@ const getTableLayer = async (layerID) => {
   return tableName.rows[0].tableName;
 };
 
+const getColumnTableLayer = async (req, res) => {
+  const layerID = req.body.layerID
+  try {
+    const tableName = await getTableLayer(layerID)
+    const strQuery = `SELECT column_name
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = '${tableName}'`
+    const { rows } = await db.query(strQuery, [])
+    const result = []
+    rows.forEach(row => {
+      result.push(row.column_name)
+    })
+    res.status(200).send(result)
+  } catch (error) {
+    res.status(400).send({success: false, msg: error})
+  }
+  
+}
+
 const postGeoData = async (req, res) => {
   let { geometry, properties, layerID } = req.body;
   properties = JSON.parse(properties);
   // geometry = JSON.stringify(geometry)
-  console.log(properties);
   try {
     //1. get tableName
     const tableName = await getTableLayer(layerID);
-    console.log(tableName);
 
-    //2. get all col of table
+    //2. query
 
-    // const col = await db.query(`SELECT column_name
-    // FROM INFORMATION_SCHEMA.COLUMNS
-    // WHERE TABLE_NAME = '${tableName}'`)
-
-    // insert
-    // col name
     const cols = Object.keys(properties)
       .map((item) => `"${item}"`)
       .join(",");
@@ -267,41 +284,16 @@ const postGeoData = async (req, res) => {
     console.log(strQuery);
     await db.query(strQuery, []);
     res.status(201).send({ success: true, msg: "Create geometry success" });
-
- 
   } catch (error) {
-    console.error(error);
     res.status(400).send({ success: false, msg: error });
   }
-
-  // try {
-  //   const {
-  //     rows,
-  //   } = await db.query(
-  //     `SELECT * FROM "GeoData" WHERE "layerID" = $1 AND "geoName" = $2`,
-  //     [layerID, geoName]
-  //   );
-  //   if (rows.length !== 0) {
-  //     res.status(409).send({ msg: `Name of geo data is exist` });
-  //   } else {
-
-  //     const strQuery = `INSERT INTO "GeoData"("layerID", "geoName", "geom", "description", "radius", "color", "fill", "fillOpacity") VALUES ('${layerID}', '${geoName}', ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(
-  //       geometry
-  //     )}'),4326), '${description}', '${radius}', '#3388ff', '#3388ff', '0.2')`;
-
-  //     console.log(strQuery);
-  //     
-  //   }
-  // } catch (err) {
-  //   console.error(err);
-  // }
 };
 
 const editMap = async (req, res) => {
   // console.log(req.body)
   const { mapID, mapName } = req.body; //mapName: new name
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
-  const userID = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
+  const userID = req.userID
   try {
     const {
       rows,
@@ -320,11 +312,11 @@ const editMap = async (req, res) => {
       WHERE "mapID" = $3`,
         [mapName, iconID, mapID]
       );
-      res.status(200).send({ success: true, msg: "ok" });
+      res.status(200).send({ success: true, msg: "Edit map success" });
       return;
     }
   } catch (err) {
-    throw err;
+    res.status(200).send({ success: false, msg: err });
   }
 };
 
@@ -508,6 +500,7 @@ module.exports = {
   getData,
   getSingleMP,
   getDefaultLayer,
+  getColumnTableLayer,
   postMap,
   createLayer,
   postGeoData,
