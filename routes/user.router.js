@@ -27,11 +27,12 @@ router.post("/edit-layer", controller.editLayer);
 
 router.post("/edit-data", controller.editGeoData);
 
-router.post("/delete-geom", controller.deleteGeoData);
-router.delete("/layer", controller.deleteLayer);
-router.post("/delete-map", controller.deleteMap);
+router.delete("/geom", controller.deleteGeoData);
 
-router.post("/edit-geom", controller.editGeoData);
+router.delete("/layer", controller.deleteLayer);
+router.delete("/map", controller.deleteMap);
+
+router.put("/geom", controller.editGeoData);
 
 router.get("/search", controller.search);
 
