@@ -86,17 +86,16 @@ const getData = async (req, res) => {
   if (strLayerID === "") {
     res.send({ type: "FeatureCollection", features: [] });
   } else {
-    const layerIdArr = req.query.layerId
-      .split(",")
-      .map((mapid) => `'${mapid}'`);
-    const layerStr = layerIdArr.join(",");
-    let resQuery = await db.query(
-      `SELECT "tableName" FROM "Layers" WHERE "layerID" IN (${layerStr}) `,
-      []
-    );
-    let tableNameArr = resQuery.rows.map((item) => item.tableName);
-
     try {
+      const layerIdArr = req.query.layerId
+        .split(",")
+        .map((mapid) => `'${mapid}'`);
+      const layerStr = layerIdArr.join(",");
+      let resQuery = await db.query(
+        `SELECT "tableName" FROM "Layers" WHERE "layerID" IN (${layerStr}) `,
+        []
+      );
+      let tableNameArr = resQuery.rows.map((item) => item.tableName);
       let result = { type: "FeatureCollection", features: [] };
       let strQuery = [];
       tableNameArr.forEach((tableName) => {
@@ -105,10 +104,11 @@ const getData = async (req, res) => {
         );
       });
       strQuery = strQuery.join(" UNION ");
+      console.log(strQuery)
       const { rows } = await db.query(strQuery, []);
       console.log(rows);
       rows.forEach((row) => {
-        result.features.push(...row.geom.features);
+        if (row.geom.features !== null ) result.features.push(...row.geom.features);
       });
       // if (rows[0].geom.features !== null)
       //     geom.features.push(...rows[0].geom.features);
@@ -353,7 +353,7 @@ const editGeoData = async (req, res) => {
   const { properties, geometry, geoID, layerID } = req.body;
   try {
     const tableName = await getTableLayer(layerID);
-    // geometry = JSON.stringify(geometry); 
+    // geometry = JSON.stringify(geometry);
     let col = JSON.parse(properties);
     let strQuery = `UPDATE "${tableName}" SET `;
 

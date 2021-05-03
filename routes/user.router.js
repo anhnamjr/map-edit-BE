@@ -19,7 +19,7 @@ router.get("/single-MP", controller.getSingleMP);
 
 router.get("/single-shape", controller.getSingleShape);
 
-router.post("/create-geom", controller.postGeoData);
+router.post("/geom", controller.postGeoData);
 
 router.post("/edit-map", controller.editMap);
 
