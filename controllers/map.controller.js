@@ -104,11 +104,12 @@ const getData = async (req, res) => {
         );
       });
       strQuery = strQuery.join(" UNION ");
-      console.log(strQuery)
+      console.log(strQuery);
       const { rows } = await db.query(strQuery, []);
       console.log(rows);
       rows.forEach((row) => {
-        if (row.geom.features !== null ) result.features.push(...row.geom.features);
+        if (row.geom.features !== null)
+          result.features.push(...row.geom.features);
       });
       // if (rows[0].geom.features !== null)
       //     geom.features.push(...rows[0].geom.features);
@@ -183,7 +184,12 @@ const createLayer = async (req, res) => {
   let username = req.username;
   let { mapID, layerName, columns } = req.body;
 
-  let tableName = slug(layerName + username + Date.now());
+  // chuẩn hoá tên table
+  let tableName = slug(layerName + username);
+  // dài quá cắt bớt
+  if (tableName.length > 48) tableName = tableName.slice(tableName.length - 48);
+  // công thêm thời gian cho khỏi trùng
+  tableName += +Date.now();
 
   try {
     // 1. create new table for layer
@@ -211,13 +217,13 @@ const createLayer = async (req, res) => {
       "radius" NUMERIC DEFAULT -1,\n`;
 
     // optional table
-    columns = JSON.parse(columns);
+    // columns = JSON.parse(columns);
     columns.forEach((col) => {
-      strQuery += `"${col.name}" ${col.datatype},\n`;
+      strQuery += `"${col.attribute}" ${col.datatype},\n`;
     });
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";
-
+    console.log(strQuery);
     await db.query(strQuery, []);
 
     //2. add new layer to Layers
