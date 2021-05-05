@@ -286,11 +286,17 @@ const postGeoData = async (req, res) => {
     INSERT INTO "${tableName}"
     ("geom", ${cols}) 
     VALUES 
-    (ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326), ${values})`;
-    // console.log(strQuery);
-    await db.query(strQuery, []);
-    res.status(201).send({ success: true, msg: "Create geometry success" });
+    (ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326), ${values})
+    RETURNING ("geoID")
+    `;
+    console.log(strQuery);
+    let returning = await db.query(strQuery, []);
+
+    let geoID = returning.rows[0].geoID
+    let { rows } = await db.query(`SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" = '${geoID}'`)
+    res.status(201).send({ success: true, msg: "Create geometry success", geom: rows[0] });
   } catch (error) {
+    console.log(error)
     res.status(400).send({ success: false, msg: error });
   }
 };
