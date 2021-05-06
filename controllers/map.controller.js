@@ -1,9 +1,11 @@
 const db = require("../db");
+const slug = require("../utils/slug");
 
 const getMap = async (req, res) => {
-  const {userID} = req.userID;
+  const userID = req.userID;
   let maps;
   try {
+    // get all maps of user
     const {
       rows,
     } = await db.query(
@@ -11,7 +13,6 @@ const getMap = async (req, res) => {
       [userID]
     );
     maps = rows;
-    // console.log(maps);
     if (maps.length !== 0) {
       for (const map of maps) {
         try {
@@ -42,6 +43,7 @@ const checkMapName = async (req, res) => {
   if (rows.length === 0) res.status(200).send({ msg: "ok" });
   else res.status(409).send({ msg: "Name of map is exist" });
 };
+
 const checkLayerName = async (req, res) => {
   const layerName = req.body.layerName;
   const mapID = req.body.mapID;
@@ -53,21 +55,61 @@ const checkLayerName = async (req, res) => {
 };
 
 const getData = async (req, res) => {
-  if (!req.query.layerId) {
-    req.query.layerId = "";
+  // console.log("\n" + req.query.layerId + "\n");
+
+  // if (!req.query.layerId) {
+  //   req.query.layerId = "";
+  // }
+  // if (req.query.layerId === "") {
+  //   res.send({ type: "FeatureCollection", features: [] });
+  // } else {
+  //   const mapIdArr = req.query.layerId.split(",").map((mapid) => `'${mapid}'`);
+  //   try {
+  //     const mapStr = mapIdArr.join(",");
+  //     let strQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "GeoData" AS geo WHERE "layerID" IN (${mapStr})`;
+  //     // console.log(strQuery)
+  //     const { rows } = await db.query(strQuery, []);
+  //     // console.log(rows)
+  //     if (rows[0].geom.features === null) rows[0].geom.features = [];
+  //     res.send(rows[0].geom);
+  //   } catch (err) {
+  //     throw err;
+  //   }
+  // }
+
+  let strLayerID = req.query.layerId;
+  if (!strLayerID) {
+    strLayerID = "";
   }
-  if (req.query.layerId === "") {
+  if (strLayerID === "") {
     res.send({ type: "FeatureCollection", features: [] });
   } else {
-    const mapIdArr = req.query.layerId.split(",").map((mapid) => `'${mapid}'`);
     try {
-      const mapStr = mapIdArr.join(",");
-      let strQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "GeoData" AS geo WHERE "layerID" IN (${mapStr})`;
-      // console.log(strQuery)
+      const layerIdArr = req.query.layerId
+        .split(",")
+        .map((mapid) => `'${mapid}'`);
+      const layerStr = layerIdArr.join(",");
+      let resQuery = await db.query(
+        `SELECT "tableName" FROM "Layers" WHERE "layerID" IN (${layerStr}) `,
+        []
+      );
+      let tableNameArr = resQuery.rows.map((item) => item.tableName);
+      let result = { type: "FeatureCollection", features: [] };
+      let strQuery = [];
+      tableNameArr.forEach((tableName) => {
+        strQuery.push(
+          `SELECT jsonb_build_object('features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo`
+        );
+      });
+      strQuery = strQuery.join(" UNION ");
       const { rows } = await db.query(strQuery, []);
-      // console.log(rows)
-      if (rows[0].geom.features === null) rows[0].geom.features = [];
-      res.send(rows[0].geom);
+      rows.forEach((row) => {
+        if (row.geom.features !== null)
+          result.features.push(...row.geom.features);
+      });
+      // if (rows[0].geom.features !== null)
+      //     geom.features.push(...rows[0].geom.features);
+      res.send(result);
     } catch (err) {
       throw err;
     }
@@ -86,7 +128,6 @@ const getSingleShape = async (req, res) => {
   let { geoID } = req.query;
   let strQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "GeoData" AS geo WHERE "geoID" = '${geoID}'`;
   let { rows } = await db.query(strQuery, []);
-  console.log(rows);
   res.status(200).send(rows[0].geom.features[0]);
 };
 
@@ -94,9 +135,7 @@ const getDefaultLayer = async (req, res) => {
   try {
     const table = "vietnam_" + req.query.name;
     let strQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${table}" AS geo`;
-    console.log(strQuery);
     const { rows } = await db.query(strQuery, []);
-    // console.log(rows)
     if (rows[0].geom.features === null) rows[0].geom.features = [];
     res.send(rows[0].geom);
   } catch (err) {
@@ -105,10 +144,9 @@ const getDefaultLayer = async (req, res) => {
 };
 
 const postMap = async (req, res) => {
-  // console.log(req.body)
   const { mapName } = req.body;
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
-  const userID = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
+  const userID = req.userID;
   try {
     const {
       rows,
@@ -124,73 +162,142 @@ const postMap = async (req, res) => {
         `INSERT INTO "Maps"("mapName", "userID", "iconID") VALUES ($1, $2, $3)`,
         [mapName, userID, iconID]
       );
-      res.status(201).send({ msg: `Success` });
+      res.status(201).send({ success: true, msg: `Add map success` });
       return;
     }
   } catch (err) {
-    throw err;
+    res.status(400).send({ success: false, msg: err });
   }
 };
 
-const postLayer = async (req, res) => {
-  const { layerName, mapID } = req.body;
-  // const mapID = "3943d0b1-ff9b-4b2e-8b0a-d25582a122dd";
-  const iconID = "2ea20597-03c5-4307-9d57-a5c1c2caf143";
+const createLayer = async (req, res) => {
+  //1. create new table for layer
+  //2. add new layer to Layers
+  let username = req.username;
+  let { mapID, layerName, columns } = req.body;
+
+  // chuẩn hoá tên table
+  let tableName = slug(layerName + username);
+  // dài quá cắt bớt
+  if (tableName.length > 48) tableName = tableName.slice(tableName.length - 48);
+  // công thêm thời gian cho khỏi trùng
+  tableName += +Date.now();
+
   try {
-    const {
-      rows,
-    } = await db.query(
-      `SELECT * FROM "Layers" WHERE "mapID" = $1 AND "layerName" = $2`,
-      [mapID, layerName]
-    );
-    if (rows.length !== 0) {
-      res.status(409).send({ msg: `Name of layer is exist` });
-      return;
-    } else {
-      await db.query(
-        `INSERT INTO "Layers"("layerName", "mapID", "iconID") VALUES ($1, $2, $3)`,
-        [layerName, mapID, iconID]
-      );
-      res.status(201).send({ msg: "Success" });
+    // 1. create new table for layer
+
+    //check layer existed
+    let checkQuery = `SELECT "layerName" FROM "Layers" WHERE "mapID" = '${mapID}' AND "layerName" = '${layerName}'`;
+    let { rows } = await db.query(checkQuery, []);
+    if (rows.length != 0) {
+      res
+        .status(409)
+        .send({ success: false, msg: `Layer ${layerName} was existed` });
       return;
     }
-  } catch (err) {
-    throw err;
+
+    // create new table layer
+
+    //default table
+    let strQuery = `CREATE TABLE IF NOT EXISTS ${tableName} (
+      "geoID" uuid NOT NULL DEFAULT uuid_generate_v4(),
+      "geom" "public"."geometry",
+      "color" VARCHAR(7) DEFAULT '#33FF88'::character varying,
+      "fill" VARCHAR(7) DEFAULT '#3388ff'::character varying,
+      "fillOpacity" NUMERIC DEFAULT 0.2 ,
+      "weight" NUMERIC DEFAULT 3,
+      "radius" NUMERIC DEFAULT -1,\n`;
+
+    // optional table
+    // columns = JSON.parse(columns);
+    columns.forEach((col) => {
+      strQuery += `"${col.attribute}" ${col.datatype},\n`;
+    });
+    strQuery = strQuery.slice(0, strQuery.length - 2);
+    strQuery += "\n)";
+    await db.query(strQuery, []);
+
+    //2. add new layer to Layers
+    let updateLayer = `
+    INSERT INTO "Layers"("layerName","mapID","tableName") 
+    VALUES ('${layerName}', '${mapID}', '${tableName}')
+    RETURNING "layerID"
+    `;
+    let layerID = await db.query(updateLayer, []);
+    layerID = layerID.rows[0].layerID;
+
+    res.status(201).send({ success: true, msg: "Add layer success!" });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ success: false, msg: error });
+  }
+};
+const getTableLayer = async (layerID) => {
+  const strQuery = `SELECT "tableName" from "Layers" WHERE "layerID" = '${layerID}'`;
+  const tableName = await db.query(strQuery, []);
+  return tableName.rows[0].tableName;
+};
+
+const getColumnTableLayer = async (req, res) => {
+  const layerID = req.query.layerID;
+  try {
+    const tableName = await getTableLayer(layerID);
+    const strQuery = `SELECT column_name, data_type
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_NAME = '${tableName}'`;
+    const { rows } = await db.query(strQuery, []);
+    const unSendCols = [
+      "geoID",
+      "geom",
+      "fill",
+      "color",
+      "weight",
+      "fillOpacity",
+      "radius",
+    ];
+    let colArr = rows.filter((item) => !unSendCols.includes(item.column_name));
+
+    res.status(200).send(colArr);
+  } catch (error) {
+    res.status(400).send({ success: false, msg: error });
   }
 };
 
 const postGeoData = async (req, res) => {
-  let { geometry, properties } = req.body.editedGeom;
-  const { color, dashArray, dayModify, description, fill,
-    fillOpacity,
-    geoID,
-    geoName,
-    layerID,
-    radius = 0,
-    weight } = properties
+  let { properties } = req.body;
+  let { layerID, geometry } = properties  
+  delete properties.layerID
+  delete properties.geometry
 
-  // if (radius === undefined) radius = 0;
-
-  // console.log(req.body);
-  // geom = `ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326))`
-  // console.log(geom)
   try {
-    const {
-      rows,
-    } = await db.query(
-      `SELECT * FROM "GeoData" WHERE "layerID" = $1 AND "geoName" = $2`,
-      [layerID, geoName]
-    );
-    if (rows.length !== 0) {
-      res.status(409).send({ msg: `Name of geo data is exist` });
-    } else {
-      const strQuery = `INSERT INTO "GeoData"("layerID", "geoName", "geom", "description", "radius", "color", "fill", "fillOpacity") VALUES ('${layerID}', '${geoName}', ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(geometry)}'),4326), '${description}', '${radius}', '#3388ff', '#3388ff', '0.2')`;
-      console.log(strQuery);
-      await db.query(strQuery, []);
-      res.status(201).send({ msg: "Success" });
-    }
-  } catch (err) {
-    console.error(err);
+    //1. get tableName
+    const tableName = await getTableLayer(layerID);
+
+    //2. query
+
+    const cols = Object.keys(properties)
+      .map((item) => `"${item}"`)
+      .join(",");
+
+    const values = Object.values(properties)
+      .map((item) => `'${item}'`)
+      .join(",");
+    const strQuery = `
+    INSERT INTO "${tableName}"
+    ("geom", ${cols}) 
+    VALUES 
+    (ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326), ${values})
+    RETURNING ("geoID")
+    `;
+    console.log(strQuery);
+    let returning = await db.query(strQuery, []);
+
+    let geoID = returning.rows[0].geoID
+    let { rows } = await db.query(`SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" = '${geoID}'`)
+    res.status(201).send({ success: true, msg: "Create geometry success", geom: rows[0] });
+  } catch (error) {
+    console.log(error)
+    res.status(400).send({ success: false, msg: error });
   }
 };
 
@@ -198,7 +305,7 @@ const editMap = async (req, res) => {
   // console.log(req.body)
   const { mapID, mapName } = req.body; //mapName: new name
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
-  const userID = "16ca9ecb-f1e5-4cd2-81d7-23a0ac7f47c0";
+  const userID = req.userID;
   try {
     const {
       rows,
@@ -217,11 +324,11 @@ const editMap = async (req, res) => {
       WHERE "mapID" = $3`,
         [mapName, iconID, mapID]
       );
-      res.status(200).send({ success: true, msg: "ok" });
+      res.status(200).send({ success: true, msg: "Edit map success!" });
       return;
     }
   } catch (err) {
-    throw err;
+    res.status(200).send({ success: false, msg: err });
   }
 };
 
@@ -254,115 +361,107 @@ const editLayer = async (req, res) => {
 };
 
 const editGeoData = async (req, res) => {
-  const { properties, geometry } = req.body.editedGeom;
-  // const { coordinates } = geometry
-  const { color, dashArray, dayModify, description, fill,
-  fillOpacity,
-  geoID,
-  geoName,
-  layerID,
-  radius,
-  weight } = properties
+  const { properties, geometry, geoID, layerID } = req.body;
   try {
-    // let { layerID } = await db
-    //   .query(`SELECT * FROM "GeoData" WHERE "geoID" = '${geoID}'`, [])
-    //   .then((result) => {
-    //     return result.rows[0];
-    //   });
+    const tableName = await getTableLayer(layerID);
+    // geometry = JSON.stringify(geometry);
+    let col = JSON.parse(properties);
+    let strQuery = `UPDATE "${tableName}" SET `;
 
-    // console.log(layerID);
-    geom = JSON.stringify(geometry);
-
-    let strQuery = `UPDATE "GeoData" SET 
-      "layerID" = '${layerID}', 
-      "dashArray" = '${dashArray}', 
-      "dayModify" = to_timestamp(${Date.now()}),
-      "description" = '${description}',
-      "fill" = '${fill}',
-      "fillOpacity" = '${fillOpacity}',
-      "geoName" = '${geoName}',
-      "radius" = '${radius}',
-      "weight" = '${weight}',
-      "color" = '${color}',
-      "geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326)
+    for (const [key, value] of Object.entries(col)) {
+      strQuery += `"${key}" = '${value}',`;
+    }
+    strQuery += `"geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326)
       WHERE "geoID" = '${geoID}'`;
-    
-    // if (geom) {
-    //   geom = JSON.stringify(geom);
-    //   strQuery += `"geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geom}'),4326), `;
-    // }
 
-    // if (radius) {
-    //   strQuery += `"radius" = '${radius}', `;
-    // }
-
-    // if (description) {
-    //   strQuery += `"description" = '${description}', `;
-    // }
-    // if (categoryID) {
-    //   strQuery += `"categoryID" = '${categoryID}', `;
-    // }
-    // if (color) {
-    //   strQuery += `"color" = '${color}', `;
-    // }
-
-    // strQuery = strQuery.slice(0, strQuery.length - 2);
-
-    // console.log(strQuery);
     await db.query(strQuery, []);
-
-    res.status(200).send();
-    // }
+    res.status(201).send({ success: true, msg: "Edit geometry success!" });
   } catch (err) {
-    console.error(err);
+    res.status(400).send({ success: false, msg: err });
   }
 };
 
-
-
 const deleteGeoData = async (req, res) => {
-  let { id } = req.body;
-  console.log(id);
-  let strQuery = Array.isArray(id)
-    ? `DELETE FROM "GeoData" WHERE "geoID" IN ('${id.join("','")}')` //delete many geom
-    : `DELETE FROM "GeoData" WHERE "geoID" = '${id}'`; //delete 1 geom
-  console.log(strQuery);
+  const { layerID, geoID } = req.body;
+  const tableName = await getTableLayer(layerID);
+  const strQuery = `DELETE FROM "${tableName}" WHERE "geoID" = '${geoID}'`;
   await db.query(strQuery, (err, results) => {
-    if (err) console.log(err);
-    else {
-      console.log("Delete success!!");
-      res.status(200).json(results);
+    if (err) {
+      console.log(err);
+      res.status(400).send({ success: false, msg: err });
+    } else {
+      console.log("Delete geometry success!!");
+      res.status(200).send({ success: true, msg: "Delete geometry success!!" });
     }
   });
 };
 const deleteMap = async (req, res) => {
   let { mapID } = req.body;
-  let strQueryDelGeom = `DELETE FROM "GeoData" WHERE "layerID" IN (SELECT "layerID" FROM "Layers" WHERE "mapID" = '${mapID}')`;
-  let strQueryDelLayer = `DELETE FROM "Layers" WHERE "mapID" = '${mapID}'`;
-  let strQueryDelMap = `DELETE FROM "Maps" WHERE "mapID" = '${mapID}'`;
-  console.log("del geom ", strQueryDelGeom);
-  console.log("del layer ", strQueryDelLayer);
-  console.log("del map ", strQueryDelMap);
-  try {
-    await db.query(strQueryDelGeom, []);
-    await db.query(strQueryDelLayer, []);
-    await db.query(strQueryDelMap, []);
-    res.status(200).send({ success: true, msg: "ok" });
-  } catch (error) {
-    res.status(400).send({ success: false, msg: error });
-  }
+  // 1. get all layer table of map
+  const { rows } = await db.query(
+    `SELECT "tableName" FROM "Layers" WHERE "mapID" = '${mapID}'`
+  );
+  const listTable = rows.map((row) => row.tableName);
+  // 2. Drop all table layer
+  let dropQuery = [];
+  listTable.forEach((table) => {
+    dropQuery.push(`DROP TABLE IF EXISTS ${table}`);
+  });
+  dropQuery = dropQuery.join(";");
+
+  // 3. delete layer in Layers
+  let strQueryDelLayer = `;DELETE FROM "Layers" WHERE "mapID" = '${mapID}';`;
+
+  // 4. delete map in Maps
+  let strQueryDelMap = `DELETE FROM "Maps" WHERE "mapID" = '${mapID}';`;
+
+  let strQuery = dropQuery + strQueryDelLayer + strQueryDelMap;
+
+  console.log(strQuery);
+
+  await db.query(strQuery, (err, result) => {
+    if (err) {
+      console.log(err);
+      res.status(400).send({ success: false, msg: err });
+    } else {
+      res
+        .status(200)
+        .send({ success: true, msg: "Delete map success!", result: result });
+    }
+  });
+
+  // try {
+  //   await db.query(strQueryDelGeom, []);
+  //   await db.query(strQueryDelLayer, []);
+  //   await db.query(strQueryDelMap, []);
+  //   res.status(200).send({ success: true, msg: "ok" });
+  // } catch (error) {
+  //   res.status(400).send({ success: false, msg: error });
+  // }
 };
 
 const deleteLayer = async (req, res) => {
   let { layerID } = req.body;
-  let strQueryDelGeom = `DELETE FROM "GeoData" WHERE "layerID" = '${layerID}'`;
-  let strQueryDelLayer = `DELETE FROM "Layers" WHERE "layerID" = '${layerID}'`;
-  console.log("del geom ", strQueryDelGeom);
-  console.log("del layer ", strQueryDelLayer);
+  //1. drop table layer
+  //2. del layer in Layers table
   try {
-    await db.query(strQueryDelGeom, []);
-    await db.query(strQueryDelLayer, []);
-    res.status(200).send({ success: true, msg: "ok" });
+    //1. drop table layer
+    // select tableName in Layers table
+    let tableName = await db.query(
+      `SELECT "tableName" FROM "Layers" WHERE "layerID" = '${layerID}'`
+    );
+    tableName = tableName.rows[0].tableName;
+    console.log(layerID, tableName);
+
+    let dropQuery = `DROP TABLE IF EXISTS ${tableName}`;
+    console.log(dropQuery);
+    await db.query(dropQuery, []);
+
+    //2. del layer in Layers table
+    let delQuery = `DELETE FROM "Layers" WHERE "layerID" = '${layerID}'`;
+    console.log(delQuery);
+    await db.query(delQuery, []);
+    res.status(200).send({ success: true, msg: "Delete layer success!" });
   } catch (error) {
     res.status(400).send({ success: false, msg: error });
   }
@@ -389,8 +488,9 @@ module.exports = {
   getData,
   getSingleMP,
   getDefaultLayer,
+  getColumnTableLayer,
   postMap,
-  postLayer,
+  createLayer,
   postGeoData,
   editMap,
   editLayer,
