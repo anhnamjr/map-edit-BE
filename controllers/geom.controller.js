@@ -1,4 +1,5 @@
 const db = require("../db");
+const getTableLayer = require("../utils/getTableLayer");
 
 const getGeoData = async (req, res) => {
   let strLayerID = req.query.layerId;

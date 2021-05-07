@@ -79,7 +79,7 @@ const signUp = async (req, res) => {
   } catch (err) {
     res.status(401).send({ msg: err });
 
-    // res.redirect('localhost:30001/signup')
+    // res.redirect('localhost:3001/signup')
   }
 };
 
