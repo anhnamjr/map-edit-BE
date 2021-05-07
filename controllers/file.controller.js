@@ -1,5 +1,11 @@
 const fs = require("fs");
 
+const getTableLayer = async (layerID) => {
+  const strQuery = `SELECT "tableName" from "Layers" WHERE "layerID" = '${layerID}'`;
+  const tableName = await db.query(strQuery, []);
+  return tableName.rows[0].tableName;
+};
+
 
 const exportGEOJSON = async (req, res) => {
   try {
