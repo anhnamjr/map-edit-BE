@@ -1,4 +1,5 @@
 const fs = require("fs");
+const http = require("http");
 const db = require("../db");
 
 const multer = require("multer");
@@ -23,19 +24,22 @@ const exportGEOJSON = async (req, res) => {
     console.log("log", geojson);
 
     fs.writeFile(
-      `./geojson/${fileName}.json`,
+      `./geojson/${fileName}.geojson`,
       JSON.stringify(geojson),
       function (err) {
-        if (err) throw err;
+        if (err) console.log(err);
         console.log("Saved!");
+        res.download(`./geojson/${fileName}.geojson`);  
 
-        fs.readFile(`./geojson/${fileName}.json`, (err, file) => {
-          if (err) throw err;
-          res.status(200).send({
-            data: `${process.env.SERVER_URL}/geojson/${fileName}.json`,
-          });
-          // res.status(200).download(`./geojson/${fileName}.json`);
-        });
+        // fs.readFile(`./geojson/${fileName}.geojson`, (err, file) => {
+        //   if (err) throw err;
+        //   // res.status(200).send({
+        //   //   data: `${process.env.SERVER_URL}/geojson/${fileName}.geojson`,
+        //   // });
+        //   console.log(__dirname)
+             
+        // }
+      // );
       }
     );
   } catch (error) {
