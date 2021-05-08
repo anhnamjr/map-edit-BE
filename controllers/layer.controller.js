@@ -69,8 +69,9 @@ const createLayer = async (req, res) => {
 
     // optional table
     // columns = JSON.parse(columns);
+    if (columns) 
     columns.forEach((col) => {
-      strQuery += `"${col.attribute}" ${col.datatype},\n`;
+      strQuery += `"${col.name}" ${col.datatype},\n`;
     });
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";
