@@ -1,12 +1,5 @@
 const db = require("../db");
-
-const getTableLayer = async (layerID) => {
-  const strQuery = `SELECT "tableName" from "Layers" WHERE "layerID" = '${layerID}'`;
-  const tableName = await db.query(strQuery, []);
-  return tableName.rows[0].tableName;
-};
-
-
+const getTableLayer = require("../utils/getTableLayer");
 
 const getGeoData = async (req, res) => {
   let strLayerID = req.query.layerId;
@@ -34,13 +27,11 @@ const getGeoData = async (req, res) => {
         );
       });
       strQuery = strQuery.join(" UNION ");
-      console.log(strQuery);
       const { rows } = await db.query(strQuery, []);
-      console.log(rows);
       rows.forEach((row) => {
         if (row.geom.features !== null)
           result.features.push(...row.geom.features);
-      });
+      }); 
       // if (rows[0].geom.features !== null)
       //     geom.features.push(...rows[0].geom.features);
       res.send(result);
@@ -94,27 +85,38 @@ const postGeoData = async (req, res) => {
 
 const editGeoData = async (req, res) => {
   const { properties, geometry, geoID, layerID } = req.body;
+  console.log(req.body)
   try {
     const tableName = await getTableLayer(layerID);
     // geometry = JSON.stringify(geometry);
-    let col = JSON.parse(properties);
+    // let col = JSON.parse(properties);
     let strQuery = `UPDATE "${tableName}" SET `;
 
-    for (const [key, value] of Object.entries(col)) {
+    for (const [key, value] of Object.entries(properties)) {
       strQuery += `"${key}" = '${value}',`;
     }
     strQuery += `"geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326)
         WHERE "geoID" = '${geoID}'`;
 
+    console.log(strQuery);
     await db.query(strQuery, []);
-    res.status(201).send({ success: true, msg: "Edit geometry success!" });
+
+
+    let { rows } = await db.query(
+      `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" = '${geoID}'`
+    );
+
+    res
+      .status(201)
+      .send({ success: true, msg: "Edit geometry success", geom: rows[0] });
+
   } catch (err) {
     res.status(400).send({ success: false, msg: err });
   }
 };
 
 const deleteGeoData = async (req, res) => {
-  const { layerID, geoID } = req.body;
+  const { layerID, geoID } = req.query;
   const tableName = await getTableLayer(layerID);
   const strQuery = `DELETE FROM "${tableName}" WHERE "geoID" = '${geoID}'`;
   await db.query(strQuery, (err, results) => {

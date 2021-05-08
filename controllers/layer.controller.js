@@ -1,6 +1,9 @@
 const db = require("../db");
 const slug = require("../utils/slug");
 
+const getTableLayer = require("../utils/getTableLayer")
+
+
 const getColumnTableLayer = async (req, res) => {
   const layerID = req.query.layerID;
   try {
@@ -37,7 +40,7 @@ const createLayer = async (req, res) => {
   // dài quá cắt bớt
   if (tableName.length > 48) tableName = tableName.slice(tableName.length - 48);
   // công thêm thời gian cho khỏi trùng
-  tableName += +Date.now();
+  tableName += Date.now();
 
   try {
     // 1. create new table for layer
@@ -66,8 +69,9 @@ const createLayer = async (req, res) => {
 
     // optional table
     // columns = JSON.parse(columns);
+    if (columns) 
     columns.forEach((col) => {
-      strQuery += `"${col.attribute}" ${col.datatype},\n`;
+      strQuery += `"${col.name}" ${col.datatype},\n`;
     });
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";
@@ -89,11 +93,7 @@ const createLayer = async (req, res) => {
     res.status(400).send({ success: false, msg: error });
   }
 };
-const getTableLayer = async (layerID) => {
-  const strQuery = `SELECT "tableName" from "Layers" WHERE "layerID" = '${layerID}'`;
-  const tableName = await db.query(strQuery, []);
-  return tableName.rows[0].tableName;
-};
+
 
 const editLayer = async (req, res) => {
   // console.log(req.body)
@@ -160,7 +160,6 @@ const checkLayerName = async (req, res) => {
   };
 module.exports = {
   getColumnTableLayer,
-  getTableLayer,
   createLayer,
   editLayer,
   deleteLayer,
