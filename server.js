@@ -12,18 +12,19 @@ const PORT = 3001;
 app.use(
   fileUpload({
     createParentPath: true,
-  })
+  }) 
 );
 
 app.use(cors());
+console.log(__dirname)
+app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 app.use("/user", verifyToken, coreRouter);
 app.use("/auth", authRouter);
 
 // app.use("");
-app.use(express.static(__dirname + "/fileUpload"));
-app.use("/geojson", express.static("geojson"));
+// app.use("/geojson", express.static("geojson"));
 
 app.listen(PORT, () => {
   console.log(`App listen port ${PORT}`);

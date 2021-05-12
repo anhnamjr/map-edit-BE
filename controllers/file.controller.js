@@ -1,4 +1,5 @@
 const fs = require("fs");
+const http = require("http");
 const db = require("../db");
 const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
@@ -44,7 +45,7 @@ const exportGEOJSON = async (req, res) => {
           },
           function (error, result) {
             console.log(result, error);
-            res.status(200).send({ success: true, url: result.secure_url });
+            res.status(200).send({ success: true, file: {url: result.secure_url, fileName: fileName} });
           }
         );
         console.log("Saved!");
