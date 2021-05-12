@@ -102,7 +102,7 @@ const editMap = async (req, res) => {
 };
 
 const deleteMap = async (req, res) => {
-  let { mapID } = req.body;
+  let { mapID } = req.query;
   // 1. get all layer table of map
   const { rows } = await db.query(
     `SELECT "tableName" FROM "Layers" WHERE "mapID" = '${mapID}'`
