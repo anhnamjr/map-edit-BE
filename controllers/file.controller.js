@@ -111,7 +111,8 @@ const importGEOJSON = async (req, res) => {
           "fill" VARCHAR(7) DEFAULT '#3388ff'::character varying,
           "fillOpacity" NUMERIC DEFAULT 0.2 ,
           "weight" NUMERIC DEFAULT 3,
-          "radius" NUMERIC DEFAULT -1,\n`;
+          "radius" NUMERIC DEFAULT -1,
+          "layerID" uuid NOT NULL,\n`;
     // optional table
     // columns = JSON.parse(columns);
     let cols_obj = geojson.features[0].properties;
@@ -123,6 +124,7 @@ const importGEOJSON = async (req, res) => {
       "weight",
       "fillOpacity",
       "radius",
+      "layerID",
     ];
     const asArray = Object.entries(cols_obj);
     let colArr = asArray.filter(([key, value]) => !unSendCols.includes(key));
@@ -147,8 +149,8 @@ const importGEOJSON = async (req, res) => {
         VALUES ('${layerName}', '${mapID}', '${tableName}')
         RETURNING "layerID"
         `;
-    await db.query(updateLayer, []);
-
+    let layerID = await db.query(updateLayer, []);
+    layerID = layerID.rows[0].layerID;
     // 3. insert data to new table
     // get all columns, except "geom"
     const cols = Object.keys(geojson.features[0].properties)
@@ -157,7 +159,7 @@ const importGEOJSON = async (req, res) => {
 
     strQuery = `
       INSERT INTO "${tableName}"
-      ("geom", ${cols}) 
+      ("geom", ${cols}, "layerID") 
       VALUES `;
     // concat rows query
     geojson.features.forEach((feature) => {
@@ -167,7 +169,7 @@ const importGEOJSON = async (req, res) => {
 
       strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(
         feature.geometry
-      )}'),4326), ${values}),\n`;
+      )}'),4326), ${values}, ${layerID}),\n`;
     });
     // cut ','
     strQuery = strQuery.slice(0, strQuery.length - 2);

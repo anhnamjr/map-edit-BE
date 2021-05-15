@@ -64,7 +64,8 @@ const createLayer = async (req, res) => {
         "fill" VARCHAR(7) DEFAULT '#3388ff'::character varying,
         "fillOpacity" NUMERIC DEFAULT 0.2 ,
         "weight" NUMERIC DEFAULT 3,
-        "radius" NUMERIC DEFAULT -1,\n`;
+        "radius" NUMERIC DEFAULT -1,
+        "layerID" uuid NOT NULL,\n`;
 
     // optional table
     // columns = JSON.parse(columns);
