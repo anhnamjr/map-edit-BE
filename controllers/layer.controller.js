@@ -1,8 +1,7 @@
 const db = require("../db");
 const slug = require("../utils/slug");
 
-const getTableLayer = require("../utils/getTableLayer")
-
+const getTableLayer = require("../utils/getTableLayer");
 
 const getColumnTableLayer = async (req, res) => {
   const layerID = req.query.layerID;
@@ -69,10 +68,10 @@ const createLayer = async (req, res) => {
 
     // optional table
     // columns = JSON.parse(columns);
-    if (columns) 
-    columns.forEach((col) => {
-      strQuery += `"${col.name}" ${col.datatype},\n`;
-    });
+    if (columns)
+      columns.forEach((col) => {
+        strQuery += `"${col.name}" ${col.datatype},\n`;
+      });
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";
     console.log(strQuery);
@@ -94,16 +93,13 @@ const createLayer = async (req, res) => {
   }
 };
 
-
 const editLayer = async (req, res) => {
   // console.log(req.body)
   const { layerID, mapID, layerName } = req.body; //layerName: new name
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
   // const mapID = '3943d0b1-ff9b-4b2e-8b0a-d25582a122dd'
   try {
-    const {
-      rows,
-    } = await db.query(
+    const { rows } = await db.query(
       `SELECT * FROM "Layers" WHERE "mapID" = $1 AND "layerName" = $2`,
       [mapID, layerName]
     );
@@ -124,7 +120,7 @@ const editLayer = async (req, res) => {
 };
 
 const deleteLayer = async (req, res) => {
-  let { layerID } = req.body;
+  let { layerID } = req.query;
   //1. drop table layer
   //2. del layer in Layers table
   try {
@@ -150,18 +146,18 @@ const deleteLayer = async (req, res) => {
   }
 };
 const checkLayerName = async (req, res) => {
-    const layerName = req.body.layerName;
-    const mapID = req.body.mapID;
-  
-    let strQuery = `SELECT * FROM "Layers" WHERE "mapID" = '${mapID}' AND "layerName" = '${layerName}'`;
-    let { rows } = await db.query(strQuery, []);
-    if (rows.length === 0) res.status(200).send({ msg: "ok" });
-    else res.status(409).send({ msg: "Name of layer is exist" });
-  };
+  const layerName = req.body.layerName;
+  const mapID = req.body.mapID;
+
+  let strQuery = `SELECT * FROM "Layers" WHERE "mapID" = '${mapID}' AND "layerName" = '${layerName}'`;
+  let { rows } = await db.query(strQuery, []);
+  if (rows.length === 0) res.status(200).send({ msg: "ok" });
+  else res.status(409).send({ msg: "Name of layer is exist" });
+};
 module.exports = {
   getColumnTableLayer,
   createLayer,
   editLayer,
   deleteLayer,
-  checkLayerName
+  checkLayerName,
 };
