@@ -16,7 +16,6 @@ app.use(
 );
 
 app.use(cors());
-console.log(__dirname)
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
