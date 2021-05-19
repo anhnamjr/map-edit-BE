@@ -128,6 +128,50 @@ const deleteGeoData = async (req, res) => {
   });
 };
 
+const postMultiGeoData = async (req, res) => {
+  const { arrGeom, layerID } = req.body;
+  if (arrGeom.length <= 0) {
+    res.status(400).send({ success: false, msg: "Array geometry null" });
+  }
+
+  try {
+    //1. get tableName
+    const tableName = await getTableLayer(layerID);
+
+    //2. query
+    // layerID column ?
+    const cols = Object.keys(properties)
+      .map((item) => `"${item}"`)
+      .join(",");
+    let strQuery = `
+    INSERT INTO "${tableName}"
+    ("geom", ${cols}, "layerID" ) 
+    VALUES\n `;
+
+    arrGeom.forEach((geometry) => {
+      const values = Object.values(properties)
+        .map((item) => `'${item}'`)
+        .join(",");
+
+      strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326), ${values}),\n`;
+    });
+    // strQuery += `RETURNING ("geoID")`;
+    console.log(strQuery);
+
+    // let returning = await db.query(strQuery, []);
+    // return geometry which was created
+    // let geoID = returning.rows[0].geoID;
+    // let { rows } = await db.query(
+    //   `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" = '${geoID}'`
+    // );
+    // res
+    //   .status(201)
+    //   .send({ success: true, msg: "Create geometry success", geom: rows[0] });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ success: false, msg: error });
+  }
+};
 // const getSingleMP = async (req, res) => {
 //   let { geoID } = req.query;
 //   let strQuery = `SELECT ST_AsGeoJSON(geom) AS geom FROM "GeoData" AS geo WHERE "geoID" = '${geoID}'`;
