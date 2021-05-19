@@ -169,7 +169,7 @@ const importGEOJSON = async (req, res) => {
 
       strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(
         feature.geometry
-      )}'),4326), ${values}, ${layerID}),\n`;
+      )}'),4326), ${values}, '${layerID}'),\n`;
     });
     // cut ','
     strQuery = strQuery.slice(0, strQuery.length - 2);
