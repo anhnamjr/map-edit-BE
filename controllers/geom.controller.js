@@ -43,7 +43,8 @@ const getGeoData = async (req, res) => {
 
 const postGeoData = async (req, res) => {
   let { arrGeom } = req.body;
-  // let { arrGeom, layerID } = req.body;
+  console.log(arrGeom)
+  // let { arrG eom, layerID } = req.body;
 
   if (arrGeom.length <= 0) {
     res.status(400).send({ success: false, msg: `Geometry data null` });
@@ -55,6 +56,7 @@ const postGeoData = async (req, res) => {
 
       //2. query
       // const cols = Object.keys(JSON.parse(arrGeom[0]).properties)
+      delete arrGeom[0].properties.geoID
       const cols = Object.keys(arrGeom[0].properties)
         .map((item) => `"${item}"`)
         .join(",");
@@ -66,30 +68,30 @@ const postGeoData = async (req, res) => {
 
       // loop
       arrGeom.forEach((geom) => {
-        geom = JSON.parse(geom);
-        console.log(geom);
-        let { geometry } = geom.properties;
+        let { geometry } = geom;
         let { properties } = geom;
         // delete properties.layerID;
-        delete properties.geometry;
+        delete properties.geoID;
         const values = Object.values(properties)
           .map((item) => `'${item}'`)
           .join(",");
-        strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326), ${values}),\n`;
+        strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(geometry)}'),4326), ${values}),\n`;
       });
       // cut ','
       strQuery = strQuery.slice(0, strQuery.length - 2);
       strQuery += ` RETURNING ("geoID")`;
       console.log(strQuery);
       let returning = await db.query(strQuery, []);
-      // return geometry which was created
-      let geoID = returning.rows[0].geoID;
-      let returnQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" IN '${geoID}'`;
-      console.log(returnQuery);
-      let { rows } = await db.query(returnQuery);
+
+      // // return geometry which was created
+      // let geoID = returning.rows[0].geoID;
+      // let returnQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" IN '${geoID}'`;
+      // console.log(returnQuery);
+      // let { rows } = await db.query(returnQuery);
+
       res
         .status(201)
-        .send({ success: true, msg: "Create geometry success", geom: rows[0] });
+        // .send({ success: true, msg: "Create geometry success", geom: rows[0] });
     } catch (error) {
       console.log(error);
       res.status(400).send({ success: false, msg: error });
