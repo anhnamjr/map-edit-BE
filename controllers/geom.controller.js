@@ -84,14 +84,20 @@ const postGeoData = async (req, res) => {
       let returning = await db.query(strQuery, []);
 
       // // return geometry which was created
-      // let geoID = returning.rows[0].geoID;
-      // let returnQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" IN '${geoID}'`;
-      // console.log(returnQuery);
-      // let { rows } = await db.query(returnQuery);
+      console.log(returning.rows)
+      let idArr = []
+      returning.rows.forEach((row) => {
+        idArr.push(row.geoID)
+      })
+      let geoID = idArr.map(item => `'${item}'`).join(',')
+      let returnQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" IN (${geoID})`;
+      console.log('return query: \n', returnQuery);
+      let { rows } = await db.query(returnQuery);
 
       res
         .status(201)
-        // .send({ success: true, msg: "Create geometry success", geom: rows[0] });
+        // .send({msg:'.'})
+        .send({ success: true, msg: "Create geometry success", geom: rows[0] });
     } catch (error) {
       console.log(error);
       res.status(400).send({ success: false, msg: error });
@@ -144,10 +150,11 @@ const editGeoData = async (req, res) => {
 //   });
 // };
 const deleteGeoData = async (req, res) => {
-  const { layerID, geoID } = req.query;
+  let { layerID, geoID } = req.query;
+  geoID = geoID.split(',').map( item => `'${item}'`).join(',')
   // let geoIDArr = geoID.split(',')
   const tableName = await getTableLayer(layerID);
-  const strQuery = `DELETE FROM "${tableName}" WHERE "geoID" IN '${geoID}'`;
+  const strQuery = `DELETE FROM "${tableName}" WHERE "geoID" IN (${geoID})`;
   await db.query(strQuery, (err, results) => {
     if (err) {
       console.log(strQuery, err);
