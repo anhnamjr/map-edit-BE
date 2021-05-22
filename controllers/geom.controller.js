@@ -43,7 +43,7 @@ const getGeoData = async (req, res) => {
 
 const postGeoData = async (req, res) => {
   let { arrGeom } = req.body;
-  console.log(arrGeom)
+  console.log(arrGeom);
   // let { arrG eom, layerID } = req.body;
 
   if (arrGeom.length <= 0) {
@@ -56,7 +56,7 @@ const postGeoData = async (req, res) => {
 
       //2. query
       // const cols = Object.keys(JSON.parse(arrGeom[0]).properties)
-      delete arrGeom[0].properties.geoID
+      delete arrGeom[0].properties.geoID;
       const cols = Object.keys(arrGeom[0].properties)
         .map((item) => `"${item}"`)
         .join(",");
@@ -75,7 +75,9 @@ const postGeoData = async (req, res) => {
         const values = Object.values(properties)
           .map((item) => `'${item}'`)
           .join(",");
-        strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(geometry)}'),4326), ${values}),\n`;
+        strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(
+          geometry
+        )}'),4326), ${values}),\n`;
       });
       // cut ','
       strQuery = strQuery.slice(0, strQuery.length - 2);
@@ -84,14 +86,14 @@ const postGeoData = async (req, res) => {
       let returning = await db.query(strQuery, []);
 
       // // return geometry which was created
-      console.log(returning.rows)
-      let idArr = []
+      console.log(returning.rows);
+      let idArr = [];
       returning.rows.forEach((row) => {
-        idArr.push(row.geoID)
-      })
-      let geoID = idArr.map(item => `'${item}'`).join(',')
+        idArr.push(row.geoID);
+      });
+      let geoID = idArr.map((item) => `'${item}'`).join(",");
       let returnQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" IN (${geoID})`;
-      console.log('return query: \n', returnQuery);
+      console.log("return query: \n", returnQuery);
       let { rows } = await db.query(returnQuery);
 
       res
@@ -106,7 +108,7 @@ const postGeoData = async (req, res) => {
 };
 
 const editGeoData = async (req, res) => {
-  const { properties, geometry, geoID, layerID } = req.body;
+  const { properties, geometry, geoID, layerID, arrGeom } = req.body;
   console.log(req.body);
   try {
     const tableName = await getTableLayer(layerID);
@@ -114,6 +116,13 @@ const editGeoData = async (req, res) => {
     // let col = JSON.parse(properties);
     let strQuery = `UPDATE "${tableName}" SET `;
 
+    // loop
+    arrGeom.forEach((geom) => {
+      let { geometry } = geom;
+      let { properties } = geom;
+      // delete properties.layerID;
+      delete properties.geoID;
+    });
     for (const [key, value] of Object.entries(properties)) {
       strQuery += `"${key}" = '${value}',`;
     }
@@ -151,7 +160,10 @@ const editGeoData = async (req, res) => {
 // };
 const deleteGeoData = async (req, res) => {
   let { layerID, geoID } = req.query;
-  geoID = geoID.split(',').map( item => `'${item}'`).join(',')
+  geoID = geoID
+    .split(",")
+    .map((item) => `'${item}'`)
+    .join(",");
   // let geoIDArr = geoID.split(',')
   const tableName = await getTableLayer(layerID);
   const strQuery = `DELETE FROM "${tableName}" WHERE "geoID" IN (${geoID})`;
