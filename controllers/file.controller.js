@@ -45,7 +45,7 @@ const exportGEOJSON = async (req, res) => {
             use_filename: true,
           },
           function (error, result) {
-            console.log(result, error);
+            // console.log(result, error);
             res.status(200).send({
               success: true,
               file: { url: result.secure_url, fileName: fileName },
@@ -140,7 +140,7 @@ const importGEOJSON = async (req, res) => {
 
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";
-    console.log(strQuery);
+    // console.log(strQuery);
 
     await db.query(strQuery, []);
     //2. add new layer to Layers
@@ -174,7 +174,7 @@ const importGEOJSON = async (req, res) => {
     // cut ','
     strQuery = strQuery.slice(0, strQuery.length - 2);
     // strQuery += ` RETURNING ("geoID")`;
-    console.log(strQuery);
+    // console.log(strQuery);
     await db.query(strQuery, []);
     res.status(201).send({ success: true, msg: "import sucess!" });
   } catch (error) {
