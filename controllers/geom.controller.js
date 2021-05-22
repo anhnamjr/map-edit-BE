@@ -43,11 +43,12 @@ const getGeoData = async (req, res) => {
 
 const postGeoData = async (req, res) => {
   let { arrGeom } = req.body;
-  console.log(arrGeom);
+  // console.log(arrGeom);
   // let { arrG eom, layerID } = req.body;
 
-  if (arrGeom.length <= 0) {
+  if (arrGeom.length <= 0 || !arrGeom) {
     res.status(400).send({ success: false, msg: `Geometry data null` });
+    return;
   } else {
     try {
       let { layerID } = arrGeom[0].properties;
@@ -82,18 +83,18 @@ const postGeoData = async (req, res) => {
       // cut ','
       strQuery = strQuery.slice(0, strQuery.length - 2);
       strQuery += ` RETURNING ("geoID")`;
-      console.log(strQuery);
+      // console.log(strQuery);
       let returning = await db.query(strQuery, []);
 
       // // return geometry which was created
-      console.log(returning.rows);
+      // console.log(returning.rows);
       let idArr = [];
       returning.rows.forEach((row) => {
         idArr.push(row.geoID);
       });
       let geoID = idArr.map((item) => `'${item}'`).join(",");
       let returnQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" IN (${geoID})`;
-      console.log("return query: \n", returnQuery);
+      // console.log("return query: \n", returnQuery);
       let { rows } = await db.query(returnQuery);
 
       res
@@ -108,58 +109,70 @@ const postGeoData = async (req, res) => {
 };
 
 const editGeoData = async (req, res) => {
-  const { properties, geometry, geoID, layerID, arrGeom } = req.body;
+  const { arrGeom } = req.body;
   console.log(req.body);
-  try {
-    const tableName = await getTableLayer(layerID);
-    // geometry = JSON.stringify(geometry);
-    // let col = JSON.parse(properties);
-    let strQuery = `UPDATE "${tableName}" SET `;
 
-    // loop
+  try {
+    let layerID = arrGeom[0].properties.layerID
+    const tableName = await getTableLayer(layerID);
+    
+
+    let strQuery = `UPDATE ${tableName} as u SET
+    "geoID" = "u2"."geoID"::uuid,
+    "geom" = "u2"."geom",\n`;
+    // get key 
+    let cols = Object.keys(arrGeom[0].properties)
+    // remove geoID
+    let index = cols.indexOf("geoID");
+    cols.splice(index, 1);
+
+    index = cols.indexOf("layerID");
+    cols.splice(index, 1);
+
+    strQuery += cols.map((item) => `"${item}" = "u2"."${item}",`).join("\n");
+    strQuery = strQuery.slice(0, strQuery.length - 1);
+    strQuery += `\nfrom (values \n`
+    // loop value               
     arrGeom.forEach((geom) => {
-      let { geometry } = geom;
-      let { properties } = geom;
-      // delete properties.layerID;
+      let { geometry, properties } = geom;
+      let geoID = properties.geoID
+      delete properties.layerID;
       delete properties.geoID;
+      const values = Object.values(properties)
+        .map((item) => {
+          if (typeof(item) === "number") 
+            return `${item}`;
+          else 
+            return `'${item}'`;
+        })
+        .join(",");
+      strQuery += `('${geoID}',ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(
+        geometry
+      )}'),4326), ${values}),\n`;
     });
-    for (const [key, value] of Object.entries(properties)) {
-      strQuery += `"${key}" = '${value}',`;
-    }
-    strQuery += `"geom" = ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326)
-        WHERE "geoID" = '${geoID}'`;
+    strQuery = strQuery.slice(0, strQuery.length - 2);
+    let column = cols.map(item => `"${item}"`).join(",");
+    strQuery += `\n) as "u2"("geoID","geom",${column} )
+    where "u2"."geoID"::uuid = "u"."geoID";`
 
     console.log(strQuery);
     await db.query(strQuery, []);
 
-    let { rows } = await db.query(
-      `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" = '${geoID}'`
-    );
-
     res
-      .status(201)
-      .send({ success: true, msg: "Edit geometry success", geom: rows[0] });
+      .status(200)
+      .send({ success: true, msg: "Edit geometry success" });
   } catch (err) {
     res.status(400).send({ success: false, msg: err });
   }
 };
 
-// const deleteGeoData = async (req, res) => {
-//   const { layerID, geoID } = req.query;
-//   const tableName = await getTableLayer(layerID);
-//   const strQuery = `DELETE FROM "${tableName}" WHERE "geoID" = '${geoID}'`;
-//   await db.query(strQuery, (err, results) => {
-//     if (err) {
-//       console.log(err);
-//       res.status(400).send({ success: false, msg: err });
-//     } else {
-//       console.log("Delete geometry success!!");
-//       res.status(200).send({ success: true, msg: "Delete geometry success!!" });
-//     }
-//   });
-// };
+
 const deleteGeoData = async (req, res) => {
   let { layerID, geoID } = req.query;
+  if (!geoID || geoID.length === 0) {
+    res.status(400).send({ success: false, msg: "List deleted empty!" });
+    return;
+  }
   geoID = geoID
     .split(",")
     .map((item) => `'${item}'`)
@@ -178,49 +191,7 @@ const deleteGeoData = async (req, res) => {
   });
 };
 
-const postMultiGeoData = async (req, res) => {
-  try {
-    const { arrGeom, layerID } = req.body;
-    if (arrGeom.length <= 0) {
-      res.status(400).send({ success: false, msg: "Array geometry null" });
-    }
-    //1. get tableName
-    const tableName = await getTableLayer(layerID);
 
-    //2. query
-    // layerID column ?
-    const cols = Object.keys(arrGeom[0].properties)
-      .map((item) => `"${item}"`)
-      .join(",");
-    let strQuery = `
-    INSERT INTO "${tableName}"
-    ("geom", ${cols}, "layerID" ) 
-    VALUES\n `;
-
-    arrGeom.forEach((geometry) => {
-      const values = Object.values(properties)
-        .map((item) => `'${item}'`)
-        .join(",");
-
-      strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${geometry}'),4326), ${values}),\n`;
-    });
-    strQuery += `RETURNING ("geoID")`;
-    console.log(strQuery);
-
-    // let returning = await db.query(strQuery, []);
-    // return geometry which was created
-    // let geoID = returning.rows[0].geoID;
-    // let { rows } = await db.query(
-    //   `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" = '${geoID}'`
-    // );
-    // res
-    //   .status(201)
-    //   .send({ success: true, msg: "Create geometry success", geom: rows[0] });
-  } catch (error) {
-    console.log(error);
-    res.status(400).send({ success: false, msg: error });
-  }
-};
 // const getSingleMP = async (req, res) => {
 //   let { geoID } = req.query;
 //   let strQuery = `SELECT ST_AsGeoJSON(geom) AS geom FROM "GeoData" AS geo WHERE "geoID" = '${geoID}'`;
@@ -243,5 +214,4 @@ module.exports = {
   editGeoData,
   deleteGeoData,
   getSingleShape,
-  postMultiGeoData,
 };

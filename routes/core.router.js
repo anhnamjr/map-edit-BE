@@ -26,7 +26,6 @@ router.get("/data", geomController.getGeoData);
 router.post("/geom", geomController.postGeoData);
 router.delete("/geom", geomController.deleteGeoData);
 router.put("/geom", geomController.editGeoData);
-router.post("/mul-geom", geomController.postMultiGeoData);
 
 // router.get("/single-MP", geomController.getSingleMP);
 // router.get("/single-shape", geomController.getSingleShape);
