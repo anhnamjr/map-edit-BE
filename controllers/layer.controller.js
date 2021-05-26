@@ -71,7 +71,10 @@ const createLayer = async (req, res) => {
     // columns = JSON.parse(columns);
     if (columns)
       columns.forEach((col) => {
-        strQuery += `"${col.name}" ${col.datatype},\n`;
+        strQuery += `"${col.name}" ${col.datatype}`;
+        if (col.datatype.toLowerCase() === "numeric") 
+          strQuery += ` DEFAULT 0,\n`;
+        else strQuery += `,\n`
       });
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";

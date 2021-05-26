@@ -45,7 +45,7 @@ const exportGEOJSON = async (req, res) => {
             use_filename: true,
           },
           function (error, result) {
-            console.log(result, error);
+            // console.log(result, error);
             res.status(200).send({
               success: true,
               file: { url: result.secure_url, fileName: fileName },
@@ -135,12 +135,16 @@ const importGEOJSON = async (req, res) => {
     for (let [key, value] of colArr) {
       if (typeof value === "number") datatype = "NUMERIC";
       else datatype = "TEXT";
-      strQuery += `"${key}" ${datatype},\n`;
+      strQuery += `"${key}" ${datatype}`;
+      if (datatype === "NUMERIC") 
+        strQuery += ` DEFAULT 0,\n`;
+      else strQuery += `,\n`
+
     }
 
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";
-    console.log(strQuery);
+    // console.log(strQuery);
 
     await db.query(strQuery, []);
     //2. add new layer to Layers
@@ -152,8 +156,8 @@ const importGEOJSON = async (req, res) => {
     let layerID = await db.query(updateLayer, []);
     layerID = layerID.rows[0].layerID;
     // 3. insert data to new table
-    // get all columns, except "geom"
-    const cols = Object.keys(geojson.features[0].properties)
+    // get all columns, except "geom" and "layerID"
+    const cols = Object.keys(geojson.features[0].properties).filter(key => key !=="layerID")
       .map((item) => `"${item}"`)
       .join(",");
 
@@ -163,18 +167,23 @@ const importGEOJSON = async (req, res) => {
       VALUES `;
     // concat rows query
     geojson.features.forEach((feature) => {
-      const values = Object.values(feature.properties)
+      const asArray = Object.entries(feature.properties);
+      let colArr = asArray.filter(([key, value]) => key !=="layerID");
+
+      const columns = Object.fromEntries(colArr);
+
+      const values = Object.values(columns)
         .map((item) => `'${item}'`)
         .join(",");
 
       strQuery += `(ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(
         feature.geometry
-      )}'),4326), ${values}, ${layerID}),\n`;
+      )}'),4326), ${values}, '${layerID}'),\n`;
     });
     // cut ','
     strQuery = strQuery.slice(0, strQuery.length - 2);
     // strQuery += ` RETURNING ("geoID")`;
-    console.log(strQuery);
+    // console.log(strQuery);
     await db.query(strQuery, []);
     res.status(201).send({ success: true, msg: "import sucess!" });
   } catch (error) {
