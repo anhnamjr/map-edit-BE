@@ -7,11 +7,11 @@ const getColumnTableLayer = async (req, res) => {
   const layerID = req.query.layerID;
   try {
     const tableName = await getTableLayer(layerID);
-    const strQuery = `SELECT column_name, data_type
+    const strQuery = `SELECT column_name, data_type, column_default
       FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_NAME = '${tableName}'`;
     const { rows } = await db.query(strQuery, []);
-    const unSendCols = [
+    const unSendColsOpt = [
       "geoID",
       "geom",
       "fill",
@@ -19,10 +19,30 @@ const getColumnTableLayer = async (req, res) => {
       "weight",
       "fillOpacity",
       "radius",
+      "layerID"
     ];
-    let colArr = rows.filter((item) => !unSendCols.includes(item.column_name));
+    const sendColsDef = [
+      "fill",
+      "color",
+      "weight",
+      "fillOpacity"
+    ];
+    let opt = rows.filter((item) => !unSendColsOpt.includes(item.column_name));
+    let def = rows.filter((item) => sendColsDef.includes(item.column_name));
 
-    res.status(200).send(colArr);
+    def.map(item => {
+      if (item.column_name === "color" || item.column_name === "fill") item.column_default = column_default.slice(1,9)
+      else if (item.column_name === "fillOpacity") item.column_default = Number(item.column_default)
+      else item.column_default = Number(item.column_default)
+      return item
+    })
+    // def.color = def.color.slice(1,9)
+    // def.fill = def.fill.slice(1,9)
+    // def.fillOpacity = parseFloat(def.fillOpacity)
+    // def.weight = parseFloat(def.weight)
+
+    console.log(def);
+    res.status(200).send({opt, def});
   } catch (error) {
     res.status(400).send({ success: false, msg: error });
   }
@@ -32,7 +52,7 @@ const createLayer = async (req, res) => {
   //1. create new table for layer
   //2. add new layer to Layers
   let username = req.username;
-  let { mapID, layerName, columns } = req.body;
+  let { mapID, layerName, columns, fill, color, weight, fillOpacity } = req.body;
 
   // chuẩn hoá tên table
   let tableName = slug(layerName + username);
@@ -60,10 +80,10 @@ const createLayer = async (req, res) => {
     let strQuery = `CREATE TABLE IF NOT EXISTS ${tableName} (
         "geoID" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "geom" "public"."geometry",
-        "color" VARCHAR(7) DEFAULT '#33FF88'::character varying,
-        "fill" VARCHAR(7) DEFAULT '#3388ff'::character varying,
-        "fillOpacity" NUMERIC DEFAULT 0.2 ,
-        "weight" NUMERIC DEFAULT 3,
+        "color" VARCHAR(7) DEFAULT '${color}'::character varying,
+        "fill" VARCHAR(7) DEFAULT '${fill}'::character varying,
+        "fillOpacity" NUMERIC DEFAULT ${fillOpacity} ,
+        "weight" NUMERIC DEFAULT ${weight},
         "radius" NUMERIC DEFAULT -1,
         "layerID" uuid NOT NULL,\n`;
 
@@ -74,7 +94,7 @@ const createLayer = async (req, res) => {
         strQuery += `"${col.name}" ${col.datatype}`;
         if (col.datatype.toLowerCase() === "numeric") 
           strQuery += ` DEFAULT 0,\n`;
-        else strQuery += `,\n`
+        else strQuery += ` DEFAULT '',\n`
       });
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";

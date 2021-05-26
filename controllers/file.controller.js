@@ -138,7 +138,7 @@ const importGEOJSON = async (req, res) => {
       strQuery += `"${key}" ${datatype}`;
       if (datatype === "NUMERIC") 
         strQuery += ` DEFAULT 0,\n`;
-      else strQuery += `,\n`
+      else strQuery += ` DEFAULT '',\n`
 
     }
 
