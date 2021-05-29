@@ -24,10 +24,10 @@ const getColumnTableLayer = async (req, res) => {
     const sendColsDef = ["fill", "color", "weight", "fillOpacity"];
     let opt = rows.filter((item) => !unSendColsOpt.includes(item.column_name));
     let def = rows.filter((item) => sendColsDef.includes(item.column_name));
-    console.log(def);
+    // console.log(def);
     def.map((item) => {
       if (item.column_name === "color" || item.column_name === "fill")
-        item.column_default = item.column_default.slice(1, 9);
+        item.column_default = item.column_default.slice(1, 8);
       else if (item.column_name === "fillOpacity")
         item.column_default = Number(item.column_default);
       else item.column_default = Number(item.column_default);
@@ -38,7 +38,7 @@ const getColumnTableLayer = async (req, res) => {
     // def.fillOpacity = parseFloat(def.fillOpacity)
     // def.weight = parseFloat(def.weight)
 
-    console.log(def);
+    // console.log(def);
     res.status(200).send({ opt, def });
   } catch (error) {
     res.status(400).send({ success: false, msg: error });

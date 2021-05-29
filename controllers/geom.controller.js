@@ -83,7 +83,7 @@ const postGeoData = async (req, res) => {
       // cut ','
       strQuery = strQuery.slice(0, strQuery.length - 2);
       strQuery += ` RETURNING ("geoID")`;
-      // console.log(strQuery);
+      console.log(strQuery);
       let returning = await db.query(strQuery, []);
 
       // // return geometry which was created
@@ -94,7 +94,7 @@ const postGeoData = async (req, res) => {
       });
       let geoID = idArr.map((item) => `'${item}'`).join(",");
       let returnQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" IN (${geoID})`;
-      // console.log("return query: \n", returnQuery);
+      console.log("return query: \n", returnQuery);
       let { rows } = await db.query(returnQuery);
 
       res
