@@ -5,9 +5,7 @@ const getMap = async (req, res) => {
   let maps;
   try {
     // get all maps of user
-    const {
-      rows,
-    } = await db.query(
+    const { rows } = await db.query(
       `SELECT "Maps"."mapID" AS key, "Maps"."mapName" AS title FROM "Maps" JOIN "Users" ON "Maps"."userID" = "Users"."userID" WHERE "Users"."userID" = $1 ORDER BY "mapName" ASC `,
       [userID]
     );
@@ -15,9 +13,7 @@ const getMap = async (req, res) => {
     if (maps.length !== 0) {
       for (const map of maps) {
         try {
-          const {
-            rows,
-          } = await db.query(
+          const { rows } = await db.query(
             `SELECT "layerID" as key, "layerName" AS title FROM "Layers" WHERE "mapID" = $1 ORDER BY "layerName" ASC `,
             [map.key]
           );
@@ -48,9 +44,7 @@ const postMap = async (req, res) => {
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
   const userID = req.userID;
   try {
-    const {
-      rows,
-    } = await db.query(
+    const { rows } = await db.query(
       `SELECT * FROM "Maps" WHERE "userID" = $1 AND "mapName" = $2`,
       [userID, mapName]
     );
@@ -76,9 +70,7 @@ const editMap = async (req, res) => {
   const iconID = "0da68f26-5e2c-4d44-ab62-dd8431dc3d6d";
   const userID = req.userID;
   try {
-    const {
-      rows,
-    } = await db.query(
+    const { rows } = await db.query(
       `SELECT * FROM "Maps" WHERE "userID" = $1 AND "mapName" = $2`,
       [userID, mapName]
     );

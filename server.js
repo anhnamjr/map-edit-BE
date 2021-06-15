@@ -7,7 +7,7 @@ const authRouter = require("./routes/auth.router");
 const verifyToken = require("./auth/verify.token");
 const app = express();
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(
   fileUpload({
@@ -21,6 +21,9 @@ app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 app.use("/user", verifyToken, coreRouter);
 app.use("/auth", authRouter);
+app.get("/", (req, res) => {
+  res.send(`App listen port ${PORT}`);
+});
 
 // app.use("");
 // app.use("/geojson", express.static("geojson"));
