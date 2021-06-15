@@ -1,10 +1,7 @@
 node_modules
-<<<<<<< HEAD
 .env
-=======
 geojson
 .env
 uploads
 secret
 note.txt
->>>>>>> 3a4d1f6214b4617b31e3ca80543f461716816a27
