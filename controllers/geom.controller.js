@@ -31,7 +31,7 @@ const getGeoData = async (req, res) => {
       rows.forEach((row) => {
         if (row.geom.features !== null)
           result.features.push(...row.geom.features);
-      }); 
+      });
       // if (rows[0].geom.features !== null)
       //     geom.features.push(...rows[0].geom.features);
       res.send(result);
@@ -113,15 +113,14 @@ const editGeoData = async (req, res) => {
   console.log(req.body);
 
   try {
-    let layerID = arrGeom[0].properties.layerID
+    let layerID = arrGeom[0].properties.layerID;
     const tableName = await getTableLayer(layerID);
-    
 
     let strQuery = `UPDATE ${tableName} as u SET
     "geoID" = "u2"."geoID"::uuid,
     "geom" = "u2"."geom",\n`;
-    // get key 
-    let cols = Object.keys(arrGeom[0].properties)
+    // get key
+    let cols = Object.keys(arrGeom[0].properties);
     // remove geoID
     let index = cols.indexOf("geoID");
     cols.splice(index, 1);
@@ -131,19 +130,17 @@ const editGeoData = async (req, res) => {
 
     strQuery += cols.map((item) => `"${item}" = "u2"."${item}",`).join("\n");
     strQuery = strQuery.slice(0, strQuery.length - 1);
-    strQuery += `\nfrom (values \n`
-    // loop value               
+    strQuery += `\nfrom (values \n`;
+    // loop value
     arrGeom.forEach((geom) => {
       let { geometry, properties } = geom;
-      let geoID = properties.geoID
+      let geoID = properties.geoID;
       delete properties.layerID;
       delete properties.geoID;
       const values = Object.values(properties)
         .map((item) => {
-          if (typeof(item) === "number") 
-            return `${item}`;
-          else 
-            return `'${item}'`;
+          if (typeof item === "number") return `${item}`;
+          else return `'${item}'`;
         })
         .join(",");
       strQuery += `('${geoID}',ST_SetSRID(ST_GeomFromGeoJSON('${JSON.stringify(
@@ -151,21 +148,18 @@ const editGeoData = async (req, res) => {
       )}'),4326), ${values}),\n`;
     });
     strQuery = strQuery.slice(0, strQuery.length - 2);
-    let column = cols.map(item => `"${item}"`).join(",");
+    let column = cols.map((item) => `"${item}"`).join(",");
     strQuery += `\n) as "u2"("geoID","geom",${column} )
-    where "u2"."geoID"::uuid = "u"."geoID";`
+    where "u2"."geoID"::uuid = "u"."geoID";`;
 
     console.log(strQuery);
     await db.query(strQuery, []);
 
-    res
-      .status(200)
-      .send({ success: true, msg: "Edit geometry success" });
+    res.status(200).send({ success: true, msg: "Edit geometry success" });
   } catch (err) {
     res.status(400).send({ success: false, msg: err });
   }
 };
-
 
 const deleteGeoData = async (req, res) => {
   let { layerID, geoID } = req.query;
@@ -208,7 +202,7 @@ const getSingleShape = async (req, res) => {
 };
 
 module.exports = {
-  getGeoData, 
+  getGeoData,
   postGeoData,
   editGeoData,
   deleteGeoData,
