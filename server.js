@@ -23,7 +23,7 @@ app.use(
   })
 );
 
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: "https://geometry-tools.netlify.app", credentials: true }));
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
