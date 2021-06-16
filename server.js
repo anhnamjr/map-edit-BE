@@ -6,7 +6,7 @@ const coreRouter = require("./routes/core.router");
 const authRouter = require("./routes/auth.router");
 const verifyToken = require("./auth/verify.token");
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
