@@ -6,6 +6,7 @@ const coreRouter = require("./routes/core.router");
 const authRouter = require("./routes/auth.router");
 const verifyToken = require("./auth/verify.token");
 const app = express();
+const PORT = 3001;
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -15,8 +16,6 @@ app.use((req, res, next) => {
   );
   next();
 });
-
-const PORT = 3001;
 
 app.use(
   fileUpload({
@@ -30,6 +29,9 @@ app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 app.use("/user", verifyToken, coreRouter);
 app.use("/auth", authRouter);
+app.get("/", (req, res) => {
+  res.send(`App listen port ${PORT}`);
+});
 
 // app.use("");
 // app.use("/geojson", express.static("geojson"));
