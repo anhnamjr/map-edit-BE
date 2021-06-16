@@ -115,7 +115,7 @@ const deleteMap = async (req, res) => {
 
   let strQuery = dropQuery + strQueryDelLayer + strQueryDelMap;
 
-  console.log(strQuery);
+  // console.log(strQuery);
 
   await db.query(strQuery, (err, result) => {
     if (err) {

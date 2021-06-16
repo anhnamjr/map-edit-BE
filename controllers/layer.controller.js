@@ -96,7 +96,7 @@ const createLayer = async (req, res) => {
       });
     strQuery = strQuery.slice(0, strQuery.length - 2);
     strQuery += "\n)";
-    console.log(strQuery);
+    // console.log(strQuery);
     await db.query(strQuery, []);
 
     //2. add new layer to Layers
@@ -152,15 +152,15 @@ const deleteLayer = async (req, res) => {
       `SELECT "tableName" FROM "Layers" WHERE "layerID" = '${layerID}'`
     );
     tableName = tableName.rows[0].tableName;
-    console.log(layerID, tableName);
+    // console.log(layerID, tableName);
 
     let dropQuery = `DROP TABLE IF EXISTS ${tableName}`;
-    console.log(dropQuery);
+    // console.log(dropQuery);
     await db.query(dropQuery, []);
 
     //2. del layer in Layers table
     let delQuery = `DELETE FROM "Layers" WHERE "layerID" = '${layerID}'`;
-    console.log(delQuery);
+    // console.log(delQuery);
     await db.query(delQuery, []);
     res.status(200).send({ success: true, msg: "Delete layer success!" });
   } catch (error) {

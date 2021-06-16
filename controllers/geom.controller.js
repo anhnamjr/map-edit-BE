@@ -83,7 +83,7 @@ const postGeoData = async (req, res) => {
       // cut ','
       strQuery = strQuery.slice(0, strQuery.length - 2);
       strQuery += ` RETURNING ("geoID")`;
-      console.log(strQuery);
+      // console.log(strQuery);
       let returning = await db.query(strQuery, []);
 
       // // return geometry which was created
@@ -94,7 +94,7 @@ const postGeoData = async (req, res) => {
       });
       let geoID = idArr.map((item) => `'${item}'`).join(",");
       let returnQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "${tableName}" AS geo WHERE "geoID" IN (${geoID})`;
-      console.log("return query: \n", returnQuery);
+      // console.log("return query: \n", returnQuery);
       let { rows } = await db.query(returnQuery);
 
       res
@@ -110,7 +110,7 @@ const postGeoData = async (req, res) => {
 
 const editGeoData = async (req, res) => {
   const { arrGeom } = req.body;
-  console.log(req.body);
+  // console.log(req.body);
 
   try {
     let layerID = arrGeom[0].properties.layerID;
@@ -152,7 +152,7 @@ const editGeoData = async (req, res) => {
     strQuery += `\n) as "u2"("geoID","geom",${column} )
     where "u2"."geoID"::uuid = "u"."geoID";`;
 
-    console.log(strQuery);
+    // console.log(strQuery);
     await db.query(strQuery, []);
 
     res.status(200).send({ success: true, msg: "Edit geometry success" });
@@ -176,7 +176,7 @@ const deleteGeoData = async (req, res) => {
   const strQuery = `DELETE FROM "${tableName}" WHERE "geoID" IN (${geoID})`;
   await db.query(strQuery, (err, results) => {
     if (err) {
-      console.log(strQuery, err);
+      // console.log(strQuery, err);
       res.status(400).send({ success: false, msg: err });
     } else {
       console.log("Delete geometry success!!");
@@ -197,7 +197,7 @@ const getSingleShape = async (req, res) => {
   let { geoID } = req.query;
   let strQuery = `SELECT json_build_object('type', 'FeatureCollection','features', json_agg(ST_AsGeoJSON(geo.*)::json)) AS geom FROM "GeoData" AS geo WHERE "geoID" = '${geoID}'`;
   let { rows } = await db.query(strQuery, []);
-  console.log(rows);
+  // console.log(rows);
   res.status(200).send(rows[0].geom.features[0]);
 };
 

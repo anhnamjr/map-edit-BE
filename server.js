@@ -8,14 +8,14 @@ const verifyToken = require("./auth/verify.token");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With,Content-Type,Accept"
-  );
-  next();
-});
+// app.use((req, res, next) => {
+//   res.header("Access-Control-Allow-Origin", "*");
+//   res.header(
+//     "Access-Control-Allow-Headers",
+//     "Origin, X-Requested-With,Content-Type,Accept"
+//   );
+//   next();
+// });
 
 app.use(
   fileUpload({
@@ -23,7 +23,7 @@ app.use(
   })
 );
 
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.static(__dirname + "/public"));
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded

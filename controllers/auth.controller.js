@@ -20,7 +20,7 @@ const isEmailExisted = async (email) => {
 };
 
 const signIn = async (req, res) => {
-  console.log(req.body);
+  // console.log(req.body);
   const { username, password } = req.body;
   const { rows } = await db.query(
     `SELECT * FROM "Users" WHERE username='${username}'`
@@ -47,7 +47,7 @@ const signIn = async (req, res) => {
         message: "Sign in success",
       });
     } else {
-      console.log(response);
+      // console.log(response);
       res.status(400).send({
         auth: false,
         message: "username or password not match",
