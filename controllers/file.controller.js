@@ -34,7 +34,10 @@ const exportGEOJSON = async (req, res) => {
       `./geojson/${fileName}.geojson`,
       JSON.stringify(geojson),
       function (err) {
-        if (err) throw err;
+        if (err) {
+          res.status(400).send({ success: false, msg: "Export error" });
+          return;
+        }
 
         cloudinary.uploader.upload(
           `./geojson/${fileName}.geojson`,
@@ -136,10 +139,8 @@ const importGEOJSON = async (req, res) => {
       if (typeof value === "number") datatype = "NUMERIC";
       else datatype = "TEXT";
       strQuery += `"${key}" ${datatype}`;
-      if (datatype === "NUMERIC") 
-        strQuery += ` DEFAULT 0,\n`;
-      else strQuery += ` DEFAULT '',\n`
-
+      if (datatype === "NUMERIC") strQuery += ` DEFAULT 0,\n`;
+      else strQuery += ` DEFAULT '',\n`;
     }
 
     strQuery = strQuery.slice(0, strQuery.length - 2);
@@ -157,7 +158,8 @@ const importGEOJSON = async (req, res) => {
     layerID = layerID.rows[0].layerID;
     // 3. insert data to new table
     // get all columns, except "geom" and "layerID"
-    const cols = Object.keys(geojson.features[0].properties).filter(key => key !=="layerID")
+    const cols = Object.keys(geojson.features[0].properties)
+      .filter((key) => key !== "layerID")
       .map((item) => `"${item}"`)
       .join(",");
 
@@ -168,7 +170,7 @@ const importGEOJSON = async (req, res) => {
     // concat rows query
     geojson.features.forEach((feature) => {
       const asArray = Object.entries(feature.properties);
-      let colArr = asArray.filter(([key, value]) => key !=="layerID");
+      let colArr = asArray.filter(([key, value]) => key !== "layerID");
 
       const columns = Object.fromEntries(colArr);
 
